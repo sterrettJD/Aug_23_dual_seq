@@ -17,8 +17,8 @@ theme_set(theme_bw())
 # Load data
 
 ```{r load}
-df <- data.table::fread("read_counts_per_sample_by_filt_method.tsv")
-
+df <- data.table::fread("../read_counts_per_sample_by_filt_method.tsv")
+metadata <- data.table::fread("../metadata.csv")
 ```
 
 # Clean data
@@ -37,24 +37,80 @@ df[df$filt_method==F, "filt_method"] <- "Bbmap"
 
 # Divide this by 2 because this file includes both of the paired reads
 df[df$filt_method=="Bbmap", "readcounts"] <- df[df$filt_method=="Bbmap", "readcounts"]/2
+df$million_reads <- df$readcounts/1e6
+
+
+metadata$start_reads <- as.numeric(gsub(",", "", metadata$`PF Clusters`)) +
+    as.numeric(gsub(",", "", metadata$`PF Clusters_2`))
+
+df <- merge(metadata[,c("Sample", "start_reads")], 
+            df, 
+            by="Sample",
+            all.y=TRUE)
 ```
 
 # Plot
+## Histogram of non-host read counts
 ```{r plot}
-hist(df$readcounts)
-
-ggplot(data=df, 
-       mapping=aes(x=filt_method,
-                   y=readcounts)) +
-    geom_line(aes(group=Sample)) + 
-    geom_point(size = 2) + 
-    geom_boxplot()
-
-ggplot(data=df, 
-       mapping=aes(x=filt_method,
-                   y=readcounts)) +
-    geom_violin() +
-    geom_line(aes(group=Sample)) + 
-    geom_point(size = 2)
+hist(df$million_reads)
 ```
 
+## Boxplot of non-host read counts by filtering method
+```{r box_by_filt} 
+ggplot(data=df, 
+       mapping=aes(x=filt_method,
+                   y=million_reads)) +
+    geom_boxplot() +
+    geom_line(aes(group=Sample)) + 
+    geom_point(size = 2) +
+    labs(x="Host filtering method", 
+         y="Million non-host reads")
+```
+
+## Violinplot of non-host read counts by filtering method
+```{r}
+ggplot(data=df, 
+       mapping=aes(x=filt_method,
+                   y=million_reads)) +
+    geom_violin() +
+    geom_line(aes(group=Sample)) + 
+    geom_point(size = 2) +
+    labs(x="Host filtering method", 
+         y="Million non-host reads")
+
+```
+
+## Non-host reads by prep method {.tabset}
+### Prep
+```{r prep_by_prep}
+# Samples before DM 33 were stored in PBS, all others (including LG)
+is.DM <- grepl("DM", df$Sample)
+number <- str_split(df$Sample, pattern="_") %>% 
+    lapply(function(x){x[2]}) %>% 
+    unlist() %>% 
+    as.numeric()
+
+df$storage_method <- rep(NA, nrow(df)) %>% as.character()
+df[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
+df[is.na(df$storage_method), "storage_method"] <- "RNALater"
+```
+
+### Absolute read number
+```{r plot_by_prep_absolute} 
+ggplot(data=df, 
+       mapping=aes(x=filt_method,
+                   y=million_reads)) +
+    geom_violin() +
+    facet_wrap(~storage_method) +
+    labs(x="Host filtering method", y="Million non-host reads")
+```
+
+### Percent
+```{r plot_by_prep_relative} 
+ggplot(data=df, 
+       mapping=aes(x=filt_method,
+                   y=(readcounts/start_reads)*100 )) +
+    geom_violin() +
+    facet_wrap(~storage_method) +
+    labs(x="Host filtering method", y="Non-host reads (% of total)")
+```
