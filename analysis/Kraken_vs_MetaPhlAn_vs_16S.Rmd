@@ -1,0 +1,23 @@
+---
+title: "MetaPhlAn vs Kraken vs 16S"
+author: "John Sterrett"
+date: "2023-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load("qiime2R",
+               "phyloseq")
+```
+
+# Load data
+```{r}
+s <- qiime2R::qza_to_phyloseq(features="../16s-data/tax_filtered_dual.qza",
+                              taxonomy="../16s-data/taxonomy_dual.qza",
+                              metadata="../16s-data/16S_meta.txt")
+
+m <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_bugs_list.tsv")
+k <- data.table::fread("../seq.f0.0.r0.0.nonhost.kraken/Combined-taxonomy.tsv")
+```
