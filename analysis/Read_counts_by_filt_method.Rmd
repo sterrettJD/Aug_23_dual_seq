@@ -1,0 +1,60 @@
+---
+title: "Read counts by filter method"
+author: "John Sterrett"
+date: "2023-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(ggplot2,
+               tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+
+# set ggplot theme
+theme_set(theme_bw())
+```
+
+# Load data
+
+```{r load}
+df <- data.table::fread("read_counts_per_sample_by_filt_method.tsv")
+
+```
+
+# Clean data
+
+```{r clean}
+df$V1 <- NULL
+df$Sample <- 
+    df$file %>% sapply(FUN=function(x){str_split(x, "/")[[1]][2]})
+df$Sample <- gsub(pattern=".fq.gz", replacement="", df$Sample)
+df$Sample <- gsub(pattern=".R1", replacement="", df$Sample)
+df$Sample <- gsub(pattern=".nonhuman", replacement="", df$Sample)
+
+df$filt_method <- grepl("nonhost", df$file) %>% as.factor()
+df[df$filt_method==T, "filt_method"] <- "Hostile"
+df[df$filt_method==F, "filt_method"] <- "Bbmap"
+
+# Divide this by 2 because this file includes both of the paired reads
+df[df$filt_method=="Bbmap", "readcounts"] <- df[df$filt_method=="Bbmap", "readcounts"]/2
+```
+
+# Plot
+```{r plot}
+hist(df$readcounts)
+
+ggplot(data=df, 
+       mapping=aes(x=filt_method,
+                   y=readcounts)) +
+    geom_line(aes(group=Sample)) + 
+    geom_point(size = 2) + 
+    geom_boxplot()
+
+ggplot(data=df, 
+       mapping=aes(x=filt_method,
+                   y=readcounts)) +
+    geom_violin() +
+    geom_line(aes(group=Sample)) + 
+    geom_point(size = 2)
+```
+
