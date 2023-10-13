@@ -10,12 +10,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 pacman::p_load("qiime2R",
                "phyloseq",
-               "tidyverse")
+               "tidyverse",
+               "microshades",
+               "cowplot")
 ```
 
 # Load data
 ```{r}
-s <- qiime2R::qza_to_phyloseq(features="../16s-data/tax_filtered_dual.qza",
+s.pseq <- qiime2R::qza_to_phyloseq(features="../16s-data/tax_filtered_dual.qza",
                               taxonomy="../16s-data/taxonomy_dual.qza",
                               metadata="../16s-data/16S_meta.txt")
 
@@ -26,9 +28,24 @@ k <- data.table::fread("../seq.f0.0.r0.0.nonhost.kraken/Combined-taxonomy.tsv",
 
 metadata <- data.table::fread("../metadata.csv", data.table=F)
 rownames(metadata) <- metadata$Sample
+metadata$Sample <- NULL
 ```
 
 # Clean data
+
+## 16S
+```{r}
+s.taxonomy.table <- tax_table(s.pseq) %>% as.data.frame()
+s.host <- s.taxonomy.table[s.taxonomy.table$Phylum=="Vertebrata",]
+s.host <- s.host[!is.na(s.host$Phylum),]
+s.host.otuname <- rownames(s.host)
+
+s.pseq.taxa <- taxa_names(s.pseq)
+s.pseq.taxa <- s.pseq.taxa[!(s.pseq.taxa %in% s.host.otuname)]
+s.pseq.nohost <- prune_taxa(s.pseq.taxa, s.pseq)
+
+```
+
 ## Bracken to phyloseq
 ```{r}
 pseq_from_bracken <- function(k, as.relative=TRUE){
@@ -56,8 +73,18 @@ pseq_from_bracken <- function(k, as.relative=TRUE){
     return(k.pseq)
 }
 
+# Kraken includes competitive mapping to human genome, so remove that from this plot
 k.pseq <- pseq_from_bracken(k)
 sample_data(k.pseq) <- sample_data(metadata)
+
+k.taxonomy.table <- tax_table(k.pseq) %>% as.data.frame()
+host <- k.taxonomy.table[k.taxonomy.table$phylum=="Chordata",]
+host <- host[!is.na(host$phylum),]
+host.otuname <- rownames(host)
+
+k.pseq.taxa <- taxa_names(k.pseq)
+k.pseq.taxa <- k.pseq.taxa[!(k.pseq.taxa == host.otuname)]
+k.pseq.nohost <- prune_taxa(k.pseq.taxa, k.pseq)
 ```
 
 ## MetaPhlAn to phyloseq
@@ -135,4 +162,67 @@ m.pseq <- phyloseq(otu_table=otu_table(bugslist, taxa_are_rows=T),
                  )
 ```
 
-# Microshades
+# Microshades {.tabset}
+```{r plotting_setup, echo=F}
+
+make_microshades <- function(pseq, biggroup="Phylum", subgroup="Genus"){
+        
+    # prep the microshades colors
+    mdf_prep <- prep_mdf(pseq, subgroup_level=subgroup)
+    # sort the phylum names
+    phylum_table <- tax_glom(pseq, taxrank=biggroup) %>% otu_table()
+    phyla.otunames <- rownames(phylum_table)
+    taxonomy.table <- tax_table(pseq) %>% as.data.frame()
+    
+    phylums <- taxonomy.table[phyla.otunames, biggroup]
+    
+    sorted_phylums <- phylums[order(rowSums(phylum_table), decreasing=T)]
+    # create the colors object
+    color_objs_GP <- create_color_dfs(mdf_prep, 
+                                      group_level=biggroup,
+                                      subgroup_level=subgroup,
+                                      selected_groups=sorted_phylums[5:1],
+                                      cvd=TRUE)
+    # Extract
+    mdf_GP <- color_objs_GP$mdf
+    cdf_GP <- color_objs_GP$cdf
+    
+    
+    
+    # create a custom legend
+    GP_legend <-custom_legend(mdf_GP, cdf_GP,
+                              group_level=biggroup,
+                              subgroup_level=subgroup,
+                              legend_key_size=unit(0.4, "cm"),
+                              legend_text_size=10)
+    
+    # plot
+    plot <- plot_microshades(mdf_GP, cdf_GP)
+    plot_1 <- plot + scale_y_continuous(labels = scales::percent, expand = expansion(0)) +
+      theme(legend.position = "none")  +
+      theme(axis.text.x = element_text(size= 7),
+            panel.background = element_rect(fill='transparent'), #transparent panel bg
+            plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+            panel.grid.major = element_blank(), #remove major gridlines
+            panel.grid.minor = element_blank() #remove minor gridlines
+            ) #transparent legend panel
+    
+    multi <- plot_grid(plot_1, GP_legend,  rel_widths = c(1, .25))
+    return(multi)
+}
+```
+
+## 16S
+```{r 16s_phy_genus_microshades, fig.width=8, fig.height=10}
+make_microshades(s.pseq.nohost)
+```
+
+## Kraken
+```{r kraken_phy_genus_microshades, fig.width=8, fig.height=10}
+make_microshades(k.pseq.nohost, biggroup="phylum", subgroup="genus")
+```
+
+## MetaPhlAn
+```{r metaphlan_phy_genus_microshades, fig.width=8, fig.height=10}
+make_microshades(m.pseq, biggroup="Phylum", subgroup="Genus")
+```
