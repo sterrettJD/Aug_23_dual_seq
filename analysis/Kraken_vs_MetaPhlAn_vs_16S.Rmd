@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 pacman::p_load("qiime2R",
-               "phyloseq")
+               "phyloseq",
+               "tidyverse")
 ```
 
 # Load data
@@ -18,6 +19,36 @@ s <- qiime2R::qza_to_phyloseq(features="../16s-data/tax_filtered_dual.qza",
                               taxonomy="../16s-data/taxonomy_dual.qza",
                               metadata="../16s-data/16S_meta.txt")
 
-m <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_bugs_list.tsv")
-k <- data.table::fread("../seq.f0.0.r0.0.nonhost.kraken/Combined-taxonomy.tsv")
+m <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_bugs_list.tsv",
+                       data.table=F)
+k <- data.table::fread("../seq.f0.0.r0.0.nonhost.kraken/Combined-taxonomy.tsv",
+                       data.table=F)
+
+metadata <- data.table::fread("../metadata.csv", data.table=F)
+rownames(metadata) <- metadata$Sample
+```
+
+# Clean data
+## Bracken to phyloseq
+```{r}
+k.tax.table <- k %>% 
+    select(c("domain", "phylum", "class", "order", "family", "genus", "species"))
+
+
+rel.cols <- colnames(k)[grepl(x=colnames(k), pattern="_frac")]
+k.feature.table.relative <- k[,rel.cols]
+colnames(k.feature.table.relative) <- gsub(
+    colnames(k.feature.table.relative), 
+    pattern=".bracken_frac", replacement="")
+
+num.cols <- colnames(k)[grepl(x=colnames(k), pattern="_num")]
+k.feature.table.num <- k[,num.cols]
+colnames(k.feature.table.num) <- gsub(
+    colnames(k.feature.table.num), 
+    pattern=".bracken_num", replacement="")
+
+
+k.pseq <- phyloseq(otu_table(k.feature.table.relative, taxa_are_rows=T),
+                   tax_table(as.matrix(k.tax.table)),
+                   sample_data(metadata))
 ```
