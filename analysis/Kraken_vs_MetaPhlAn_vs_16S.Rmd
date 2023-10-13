@@ -31,24 +31,33 @@ rownames(metadata) <- metadata$Sample
 # Clean data
 ## Bracken to phyloseq
 ```{r}
-k.tax.table <- k %>% 
-    select(c("domain", "phylum", "class", "order", "family", "genus", "species"))
+pseq_from_bracken <- function(k, as.relative=TRUE){
+    k.tax.table <- k[c("domain", "phylum", "class", 
+                       "order", "family", "genus", "species")]
+    
+    if(as.relative==T){
+        rel.cols <- colnames(k)[grepl(x=colnames(k), pattern="_frac")]
+        k.feature.table <- k[,rel.cols]
+        colnames(k.feature.table) <- gsub(
+            colnames(k.feature.table), 
+            pattern=".bracken_frac", replacement="")
+    } 
+    else if (as.relative==F) {
+        num.cols <- colnames(k)[grepl(x=colnames(k), pattern="_frac")]
+        k.feature.table <- k[,num.cols]
+        colnames(k.feature.table) <- gsub(
+            colnames(k.feature.table), 
+            pattern=".bracken_num", replacement="")
+    }
+    k.pseq <- phyloseq::phyloseq(phyloseq::otu_table(k.feature.table, 
+                                                     taxa_are_rows=T),
+                       phyloseq::tax_table(as.matrix(k.tax.table)))
 
+    return(k.pseq)
+}
 
-rel.cols <- colnames(k)[grepl(x=colnames(k), pattern="_frac")]
-k.feature.table.relative <- k[,rel.cols]
-colnames(k.feature.table.relative) <- gsub(
-    colnames(k.feature.table.relative), 
-    pattern=".bracken_frac", replacement="")
-
-num.cols <- colnames(k)[grepl(x=colnames(k), pattern="_num")]
-k.feature.table.num <- k[,num.cols]
-colnames(k.feature.table.num) <- gsub(
-    colnames(k.feature.table.num), 
-    pattern=".bracken_num", replacement="")
-
-
-k.pseq <- phyloseq(otu_table(k.feature.table.relative, taxa_are_rows=T),
-                   tax_table(as.matrix(k.tax.table)),
-                   sample_data(metadata))
+k.pseq <- pseq_from_bracken(k)
+sample_data(k.pseq) <- sample_data(metadata)
 ```
+
+# Microshades
