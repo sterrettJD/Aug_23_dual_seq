@@ -226,3 +226,29 @@ make_microshades(k.pseq.nohost, biggroup="phylum", subgroup="genus")
 ```{r metaphlan_phy_genus_microshades, fig.width=8, fig.height=10}
 make_microshades(m.pseq, biggroup="Phylum", subgroup="Genus")
 ```
+
+# Procrustes randomization test
+## Setup
+```{r}
+s.aitch <- coda.base::dist(t(otu_table(s.pseq.nohost))+1, method="aitchison")
+k.aitch <- coda.base::dist(t(otu_table(k.pseq.nohost))+1e-9, 
+                                                           method="aitchison")
+m.aitch <- coda.base::dist(t(otu_table(m.pseq))+1e-9, 
+                           method="aitchison")
+```
+
+## 16S - Kraken
+```{r}
+vegan::protest(s.aitch, k.aitch)
+
+```
+## 16S - MetaPhlAn
+```{r}
+vegan::protest(s.aitch, m.aitch)
+
+```
+## Kraken - MetaPhlAn
+```{r}
+vegan::protest(k.aitch, m.aitch)
+
+```
