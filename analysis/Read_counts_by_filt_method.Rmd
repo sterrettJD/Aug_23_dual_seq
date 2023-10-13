@@ -95,22 +95,45 @@ df[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
 df[is.na(df$storage_method), "storage_method"] <- "RNALater"
 ```
 
-### Absolute read number
-```{r plot_by_prep_absolute} 
+### Absolute read number {.tabset}
+#### Faceted
+```{r plot_by_prep_absolute_faceted} 
 ggplot(data=df, 
-       mapping=aes(x=filt_method,
+       mapping=aes(x=storage_method,
                    y=million_reads)) +
     geom_violin() +
-    facet_wrap(~storage_method) +
-    labs(x="Host filtering method", y="Million non-host reads")
+    facet_wrap(~filt_method) +
+    labs(x="Storage method", y="Million non-host reads")
 ```
 
-### Percent
-```{r plot_by_prep_relative} 
+#### Non-faceted (Hostile only)
+```{r plot_by_prep_absolute} 
+ggplot(data=df %>% filter(filt_method=="Hostile"), 
+       mapping=aes(x=storage_method,
+                   y=million_reads)) +
+    geom_violin() +
+    labs(x="Storage method", y="Million non-host reads")
+```
+
+
+### Percent {.tabset}
+#### Faceted
+```{r plot_by_prep_relative_faceted} 
 ggplot(data=df, 
-       mapping=aes(x=filt_method,
+       mapping=aes(x=storage_method,
                    y=(readcounts/start_reads)*100 )) +
     geom_violin() +
-    facet_wrap(~storage_method) +
-    labs(x="Host filtering method", y="Non-host reads (% of total)")
+    facet_wrap(~filt_method) +
+    labs(x="Storage method", y="Non-host reads (% of total)")
+```
+
+#### Non-faceted (Hostile only)
+```{r plot_by_prep_relative} 
+ggplot(data=df %>% filter(filt_method=="Hostile"), 
+       mapping=aes(x=storage_method,
+                   y=(readcounts/start_reads)*100 )) +
+    geom_violin() +
+    geom_point() +
+    labs(x="Storage", y="Non-host reads (% of total)") +
+    ylim(c(0, 22))
 ```
