@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 pacman::p_load("tidyverse",
                "ggplot2")
+# set ggplot theme
+theme_set(theme_bw())
 ```
 
 # Load Data
@@ -21,6 +23,10 @@ gf$`# Gene Family` <- NULL
 gf <- gf %>% mutate_all(as.numeric)
 colnames(gf) <- colnames(gf) %>% 
     gsub(pattern="_Abundance-RPKs", replacement="")
+
+gf.notax.rows <- rownames(gf) %>% grepl(pattern="\\|")
+gf.notax <- gf[gf.notax.rows,]
+gf.tax <- gf[!gf.notax.rows,]
 
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
                         data.table=F)
@@ -35,4 +41,65 @@ names(percent.unmapped) <- colnames(gf)
 hist(percent.unmapped)
 
 knitr::kable(percent.unmapped, col.names="Percent unmapped")
+```
+
+# PCoA {.tabset}
+
+## Aitchison distance {.tabset}
+```{r calc_dist}
+notax.aitch <- robCompositions::aDist(t(gf.notax)+1)
+tax.aitch <- robCompositions::aDist(t(gf.tax)+1)
+```
+
+### No-tax by HIV
+```{r pcoa_aitch_HIV}
+notax.aitch.pcoa <- ape::pcoa(notax.aitch)
+
+notax.aitch.pcoa.dat <- merge(notax.aitch.pcoa$vectors, metadata,
+                              by.x="row.names", by.y="Sample_ID")
+notax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=HIV_Status, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+    
+```
+
+### No-tax by Cohort
+```{r pcoa_aitch_Cohort}
+notax.aitch.pcoa <- ape::pcoa(notax.aitch)
+
+notax.aitch.pcoa.dat <- merge(notax.aitch.pcoa$vectors, metadata,
+                              by.x="row.names", by.y="Sample_ID")
+notax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+    
+```
+
+
+### With tax by HIV
+```{r pcoa_aitch_HIV_tax}
+tax.aitch.pcoa <- ape::pcoa(tax.aitch)
+
+tax.aitch.pcoa.dat <- merge(tax.aitch.pcoa$vectors, metadata,
+                              by.x="row.names", by.y="Sample_ID")
+tax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=HIV_Status, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+    
+```
+
+### With tax by Cohort
+```{r pcoa_aitch_Cohort_tax}
+tax.aitch.pcoa <- ape::pcoa(tax.aitch)
+
+tax.aitch.pcoa.dat <- merge(tax.aitch.pcoa$vectors, metadata,
+                              by.x="row.names", by.y="Sample_ID")
+tax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+    
 ```
