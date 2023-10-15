@@ -1,0 +1,38 @@
+---
+title: "Microbe Functional"
+author: "John Sterrett"
+date: "2023-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load("tidyverse",
+               "ggplot2")
+```
+
+# Load Data
+```{r}
+gf <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies.tsv",
+                        data.table=F)
+rownames(gf) <- gf$`# Gene Family`
+gf$`# Gene Family` <- NULL
+gf <- gf %>% mutate_all(as.numeric)
+colnames(gf) <- colnames(gf) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+metadata <- data.table::fread("../16s-data/16S_meta.txt",
+                        data.table=F)
+```
+
+# Unmapped
+```{r}
+sample.sums <- colSums(gf)
+percent.unmapped <- as.numeric((gf["UNMAPPED",]/sample.sums) * 100)
+names(percent.unmapped) <- colnames(gf)
+
+hist(percent.unmapped)
+
+knitr::kable(percent.unmapped, col.names="Percent unmapped")
+```
