@@ -7,7 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 pacman::p_load(ggplot2,
-               tidyverse)
+               tidyverse,
+               ThemePark,
+               ggbeeswarm)
 knitr::opts_chunk$set(echo = TRUE)
 
 # set ggplot theme
@@ -102,6 +104,7 @@ ggplot(data=df,
        mapping=aes(x=storage_method,
                    y=million_reads)) +
     geom_violin() +
+    geom_beeswarm() +
     facet_wrap(~filt_method) +
     labs(x="Storage method", y="Million non-host reads")
 ```
@@ -112,6 +115,7 @@ ggplot(data=df %>% filter(filt_method=="Hostile"),
        mapping=aes(x=storage_method,
                    y=million_reads)) +
     geom_violin() +
+    geom_beeswarm() +
     labs(x="Storage method", y="Million non-host reads")
 ```
 
@@ -123,6 +127,7 @@ ggplot(data=df,
        mapping=aes(x=storage_method,
                    y=(readcounts/start_reads)*100 )) +
     geom_violin() +
+    geom_beeswarm() +
     facet_wrap(~filt_method) +
     labs(x="Storage method", y="Non-host reads (% of total)")
 ```
@@ -133,7 +138,13 @@ ggplot(data=df %>% filter(filt_method=="Hostile"),
        mapping=aes(x=storage_method,
                    y=(readcounts/start_reads)*100 )) +
     geom_violin() +
-    geom_point() +
+    geom_beeswarm() +
     labs(x="Storage", y="Non-host reads (% of total)") +
     ylim(c(0, 22))
+```
+
+```{r}
+perc_nonhost <- (df$readcounts/df$start_reads)*100 
+t.test(perc_nonhost[df$storage_method=="PBS"],
+       perc_nonhost[df$storage_method=="RNALater"])
 ```
