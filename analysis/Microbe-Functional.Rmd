@@ -30,6 +30,18 @@ gf.tax <- gf[!gf.notax.rows,]
 
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
                         data.table=F)
+
+# Samples before DM 33 were stored in PBS, all others (including LG)
+is.DM <- grepl("DM", metadata$Sample_ID)
+number <- str_split(metadata$Sample_ID, pattern="_") %>% 
+    lapply(function(x){x[2]}) %>% 
+    unlist() %>% 
+    as.numeric()
+
+metadata$storage_method <- rep(NA, nrow(metadata)) %>% as.character()
+metadata[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
+metadata[is.na(metadata$storage_method), "storage_method"] <- "RNALater"
+
 ```
 
 # Unmapped
@@ -75,6 +87,16 @@ notax.aitch.pcoa.dat %>%
     
 ```
 
+### No-tax by storage method
+```{r pcoa_aitch_storage}
+notax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+    
+```
+
+
 
 ### With tax by HIV
 ```{r pcoa_aitch_HIV_tax}
@@ -91,14 +113,22 @@ tax.aitch.pcoa.dat %>%
 
 ### With tax by Cohort
 ```{r pcoa_aitch_Cohort_tax}
-tax.aitch.pcoa.dat <- merge(tax.aitch.pcoa$vectors, metadata,
-                              by.x="row.names", by.y="Sample_ID")
 tax.aitch.pcoa.dat %>%
     ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
     geom_point(size=4) +
     ggrepel::geom_label_repel(color="black")
     
 ```
+
+### With tax by storage method
+```{r pcoa_aitch_Cohort_tax}
+tax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+    
+```
+
 
 # Pathways
 ## Load and clean
