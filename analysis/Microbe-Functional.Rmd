@@ -121,7 +121,7 @@ tax.aitch.pcoa.dat %>%
 ```
 
 ### With tax by storage method
-```{r pcoa_aitch_Cohort_tax}
+```{r pcoa_aitch_storage_tax}
 tax.aitch.pcoa.dat %>%
     ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
     geom_point(size=4) +
@@ -166,4 +166,12 @@ pathway.means.sorted <- path.notax.rel.sorted %>%
     round(digits=2) %>%
     head(n=20) %>%
     knitr::kable()
+
+integrated.p.m.s <- (pathway.means.sorted[!(names(pathway.means.sorted) 
+                       %in% c("UNMAPPED", "UNINTEGRATED"))]) 
+((integrated.p.m.s/sum(integrated.p.m.s)) * 100) %>% 
+    round(digits=2) %>%
+    head(n=20) %>%
+    knitr::kable()
+
 ```
