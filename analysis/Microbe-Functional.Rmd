@@ -103,3 +103,41 @@ tax.aitch.pcoa.dat %>%
     ggrepel::geom_label_repel(color="black")
     
 ```
+
+# Pathways
+## Load and clean
+```{r}
+paths <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_pathabundance.tsv")
+
+rownames(paths) <- paths$`# Pathway`
+paths$`# Pathway` <- NULL
+colnames(paths) <- colnames(paths) %>% gsub(pattern="_Abundance", 
+                                            replacement="")
+
+paths.tax.rows <- grepl("\\|", rownames(paths))
+
+paths.tax <- paths[paths.tax.rows,]
+rownames(paths.tax) <- rownames(paths)[paths.tax.rows]
+paths.tax.rel <- t(t(paths.tax)/colSums(paths.tax))
+
+paths.notax <- paths[!paths.tax.rows,]
+rownames(paths.notax) <- rownames(paths)[!paths.tax.rows]
+paths.notax.rel <- t(t(paths.notax)/colSums(paths.notax))
+rownames(paths.notax.rel) <- rownames(paths.notax)
+```
+
+## Top Paths
+```{r}
+order.of.pathways <- order(rowSums(paths.notax.rel), decreasing=T)
+
+path.notax.rel.sorted <- paths.notax.rel[order.of.pathways,] 
+rownames(path.notax.rel.sorted) <- rownames(paths.notax.rel)[order.of.pathways]
+
+pathway.means.sorted <- path.notax.rel.sorted %>%
+    rowMeans() 
+
+(pathway.means.sorted*100) %>% 
+    round(digits=2) %>%
+    head(n=20) %>%
+    knitr::kable()
+```
