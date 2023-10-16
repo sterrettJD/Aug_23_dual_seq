@@ -1,0 +1,52 @@
+---
+title: "Host Transcriptome"
+author: "John Sterrett"
+date: "2023-10-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load("tidyverse",
+               "ggplot2")
+# set ggplot theme
+theme_set(theme_bw())
+```
+
+# Load data
+```{r}
+gn <- data.table::fread("../seq.f0.0.r0.0.host/counts.txt", data.table=F)
+colnames(gn) <- colnames(gn) %>% gsub(pattern="seq.f0.0.r0.0.host/",
+                                      replacement="")
+colnames(gn) <- colnames(gn) %>% gsub(pattern=".bam",
+                                      replacement="")
+rownames(gn) <- gn$Geneid
+gn$Geneid <- NULL
+
+gns.only <- gn[!colnames(gn) %in% c("Chr", "Start", "End", "Strand", "Length")] %>%
+    as.matrix()
+
+
+
+metadata <- data.table::fread("../16s-data/16S_meta.txt",
+                        data.table=F)
+```
+
+# Convert to transcripts per million (tpm)
+```{r}
+# https://support.bioconductor.org/p/91218/
+# convert to TPM
+tpm <- function(counts,len) {
+  x <- counts/len
+  return(t(t(x)*1e6/colSums(x)))
+}
+
+gns.only.tpm <- tpm(gns.only, gn$Length)
+
+```
+
+# Ordination
+```{r}
+
+```
