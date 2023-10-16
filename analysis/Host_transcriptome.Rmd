@@ -67,6 +67,8 @@ tpm.aitch.pcoa.dat %>%
     ggrepel::geom_label_repel(color="black")
 ```
 
+Does host transcriptome correlate with metatranscriptome and/or function?
+
 ### Sample ID not labeled
 ```{r}
 tpm.aitch.pcoa.dat %>%
@@ -87,5 +89,35 @@ tpm.aitch.pcoa.dat %>%
 ```{r}
 tpm.aitch.pcoa.dat %>%
     ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    geom_point(size=4)
+```
+
+## Plot by storage method {.tabset}
+```{r}
+# Samples before DM 33 were stored in PBS, all others (including LG)
+is.DM <- grepl("DM", metadata$Sample_ID)
+number <- str_split(metadata$Sample_ID, pattern="_") %>% 
+    lapply(function(x){x[2]}) %>% 
+    unlist() %>% 
+    as.numeric()
+
+tpm.aitch.pcoa.dat$storage_method <- rep(NA, nrow(metadata)) %>% as.character()
+tpm.aitch.pcoa.dat[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
+tpm.aitch.pcoa.dat[is.na(tpm.aitch.pcoa.dat$storage_method), "storage_method"] <- "RNALater"
+
+```
+
+### Sample ID labeled
+```{r warning=F}
+tpm.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
+    geom_point(size=4) +
+    ggrepel::geom_label_repel(color="black")
+```
+
+### Sample ID not labeled
+```{r}
+tpm.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
     geom_point(size=4)
 ```
