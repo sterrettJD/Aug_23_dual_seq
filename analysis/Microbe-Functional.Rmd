@@ -66,8 +66,6 @@ notax.aitch.pcoa.dat %>%
 
 ### No-tax by Cohort
 ```{r pcoa_aitch_Cohort}
-notax.aitch.pcoa <- ape::pcoa(notax.aitch)
-
 notax.aitch.pcoa.dat <- merge(notax.aitch.pcoa$vectors, metadata,
                               by.x="row.names", by.y="Sample_ID")
 notax.aitch.pcoa.dat %>%
@@ -93,8 +91,6 @@ tax.aitch.pcoa.dat %>%
 
 ### With tax by Cohort
 ```{r pcoa_aitch_Cohort_tax}
-tax.aitch.pcoa <- ape::pcoa(tax.aitch)
-
 tax.aitch.pcoa.dat <- merge(tax.aitch.pcoa$vectors, metadata,
                               by.x="row.names", by.y="Sample_ID")
 tax.aitch.pcoa.dat %>%
