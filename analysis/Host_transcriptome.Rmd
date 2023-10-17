@@ -80,7 +80,7 @@ tpm.aitch.pcoa.dat %>%
 ### Sample ID labeled
 ```{r warning=F}
 tpm.aitch.pcoa.dat %>%
-    ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    ggplot(mapping=aes(Axis.1, Axis.2, color=MSM, label=Row.names)) +
     geom_point(size=4) +
     ggrepel::geom_label_repel(color="black")
 ```
@@ -88,7 +88,7 @@ tpm.aitch.pcoa.dat %>%
 ### Sample ID not labeled
 ```{r}
 tpm.aitch.pcoa.dat %>%
-    ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    ggplot(mapping=aes(Axis.1, Axis.2, color=MSM, label=Row.names)) +
     geom_point(size=4)
 ```
 
