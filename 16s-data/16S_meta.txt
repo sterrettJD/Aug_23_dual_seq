@@ -30,12 +30,12 @@ LG_10	SEQ023	Negative	MSM	Biop.Neg.LG010.LR	MSM
 LG_16	SEQ023	Positive	Positive	Biop.Pos.LG016.T	Postive
 LG_17	SEQ023	Positive	Positive	Biop.Pos.LG017.T	Postive
 LG_23	SEQ023	Negative	MSM	Biop.Neg.LG023.HR	MSM
-LG_25	SEQ023	Negative	MSW	Biop.Neg.LG025.LR	MSW
-LG_26	SEQ023	Negative	MSW	Biop.Neg.LG026.LR	MSW
+LG_25	SEQ023	Negative	MSW	Biop.Neg.LG025.LR	WSM
+LG_26	SEQ023	Negative	MSW	Biop.Neg.LG026.LR	WSM
 DM_86_1	SEQ029	Negative	High-risk	Biop.Neg.DM086.1.HR	WSM
 DM_86_2	SEQ029	Negative	High-risk	Biop.Neg.DM086.2.HR	WSM
 LG_31	SEQ029	Negative	MSM	Biop.Neg.LG031.HR	MSM
 LG_37	SEQ029	Negative	MSM	Biop.Neg.LG037.HR	MSM
 LG_41	SEQ029	Negative	MSM	Biop.Neg.LG041.HR	MSM
-LG_43	SEQ029	Negative	MSW	Biop.Neg.LG043.LR	MSW
+LG_43	SEQ029	Negative	MSW	Biop.Neg.LG043.LR	WSM
 LG_47	SEQ029	Negative	MSW	Biop.Neg.LG047.LR	MSW
