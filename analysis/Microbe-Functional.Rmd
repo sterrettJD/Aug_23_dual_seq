@@ -42,6 +42,16 @@ metadata$storage_method <- rep(NA, nrow(metadata)) %>% as.character()
 metadata[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
 metadata[is.na(metadata$storage_method), "storage_method"] <- "RNALater"
 
+metadata[is.DM, "Participant"] <- paste0("DM_", number[is.DM])
+metadata[!is.DM, "Participant"] <- paste0("LG_", number[!is.DM])
+
+metadata %>% 
+    group_by(Participant) %>% 
+    summarise(MSM=first(MSM)) %>%
+    select(MSM) %>%
+    as.data.frame() %>%
+    mutate(MSM=as.factor(MSM)) %>%
+    summary()
 ```
 
 # Unmapped
@@ -63,7 +73,8 @@ notax.aitch <- robCompositions::aDist(t(gf.notax)+1)
 tax.aitch <- robCompositions::aDist(t(gf.tax)+1)
 ```
 
-### No-tax by HIV
+### No-tax by HIV {.tabset}
+#### Labeled
 ```{r pcoa_aitch_HIV}
 notax.aitch.pcoa <- ape::pcoa(notax.aitch)
 
@@ -76,18 +87,43 @@ notax.aitch.pcoa.dat %>%
     
 ```
 
-### No-tax by Cohort
+#### Not Labeled
+
+```{r pcoa_aitch_HIV_nl}
+notax.aitch.pcoa <- ape::pcoa(notax.aitch)
+
+notax.aitch.pcoa.dat <- merge(notax.aitch.pcoa$vectors, metadata,
+                              by.x="row.names", by.y="Sample_ID")
+notax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=HIV_Status, label=Row.names)) +
+    geom_point(size=4)
+    
+```
+
+### No-tax by Cohort {.tabset}
+#### Labeled
 ```{r pcoa_aitch_Cohort}
 notax.aitch.pcoa.dat <- merge(notax.aitch.pcoa$vectors, metadata,
                               by.x="row.names", by.y="Sample_ID")
 notax.aitch.pcoa.dat %>%
-    ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    ggplot(mapping=aes(Axis.1, Axis.2, color=MSM, label=Row.names)) +
     geom_point(size=4) +
     ggrepel::geom_label_repel(color="black")
     
 ```
 
-### No-tax by storage method
+#### Not Labeled
+```{r pcoa_aitch_Cohort_nl}
+notax.aitch.pcoa.dat <- merge(notax.aitch.pcoa$vectors, metadata,
+                              by.x="row.names", by.y="Sample_ID")
+notax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=MSM, label=Row.names)) +
+    geom_point(size=4)
+    
+```
+
+### No-tax by storage method {.tabset}
+#### Labeled
 ```{r pcoa_aitch_storage}
 notax.aitch.pcoa.dat %>%
     ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
@@ -96,6 +132,13 @@ notax.aitch.pcoa.dat %>%
     
 ```
 
+#### Not Labeled
+```{r pcoa_aitch_storage_nl}
+notax.aitch.pcoa.dat %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
+    geom_point(size=4)
+    
+```
 
 
 ### With tax by HIV
@@ -114,7 +157,7 @@ tax.aitch.pcoa.dat %>%
 ### With tax by Cohort
 ```{r pcoa_aitch_Cohort_tax}
 tax.aitch.pcoa.dat %>%
-    ggplot(mapping=aes(Axis.1, Axis.2, color=Cohort, label=Row.names)) +
+    ggplot(mapping=aes(Axis.1, Axis.2, color=MSM, label=Row.names)) +
     geom_point(size=4) +
     ggrepel::geom_label_repel(color="black")
     
