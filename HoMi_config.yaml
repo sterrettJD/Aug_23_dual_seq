@@ -53,6 +53,7 @@ metaphlan_bowtie_db: data/metaphlan_db/
 # If these aren't already downloaded, HoMi will download them
 chocophlan_db: data/humann_dbs/chocophlan
 uniref_db: data/humann_dbs/uniref
+utility_mapping_db: data/humann_dbs/utility_mapping 
 
 
 #################################
