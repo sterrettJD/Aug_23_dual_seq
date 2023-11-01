@@ -24,9 +24,9 @@ gf <- gf %>% mutate_all(as.numeric)
 colnames(gf) <- colnames(gf) %>% 
     gsub(pattern="_Abundance-RPKs", replacement="")
 
-gf.notax.rows <- rownames(gf) %>% grepl(pattern="\\|")
-gf.notax <- gf[gf.notax.rows,]
-gf.tax <- gf[!gf.notax.rows,]
+gf.tax.rows <- rownames(gf) %>% grepl(pattern="\\|")
+gf.notax <- gf[!gf.tax.rows,]
+gf.tax <- gf[gf.tax.rows,]
 
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
                         data.table=F)
