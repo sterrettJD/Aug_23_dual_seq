@@ -145,7 +145,74 @@ summed.GMM.rels <- merge(ko.notax.rel.GMM, GMM.matrix,
 summed.GMM.rels[is.na(summed.GMM.rels$Module), "Module"] <- "NA"
 rownames(summed.GMM.rels) <- summed.GMM.rels$Module
 summed.GMM.rels$Module <- NULL
+```
 
-summed.GMM.rels[complete.cases(summed.GMM.rels),]
+# What's there?
+```{r}
+mean.GMM.rels <- rowMeans(summed.GMM.rels) * 100
+mean.GMM.rels[order(mean.GMM.rels, decreasing=T)] %>% 
+    head(20) %>% 
+    knitr::kable()
+```
+
+# Are the modules different across groups? {.tabset}
+```{r}
+merged.df <- merge(t(summed.GMM.rels), metadata[c("Sample_ID", "HIV_Status", "MSM")], 
+                   by.x="row.names", by.y="Sample_ID")
+rownames(merged.df) <- merged.df$Row.names
+merged.df$Row.names <- NULL
+```
+
+## HIV
+```{r}
+kruskal.by.HIV.res.p <- vector(mode="numeric")
+for(module in rownames(summed.GMM.rels)){
+    res <- kruskal.test(x=merged.df[,module], g=merged.df$HIV_Status)
+    kruskal.by.HIV.res.p <- c(kruskal.by.HIV.res.p, res$p.value)
+}
+
+kruskal.by.HIV.res.df <- data.frame("GMM"=rownames(summed.GMM.rels), 
+                                    "p"=p.adjust(kruskal.by.HIV.res.p, method="fdr"))
+
+kruskal.by.HIV.res.df[order(kruskal.by.HIV.res.df$p),] %>% 
+    head(20) %>%
+    knitr::kable()
 
 ```
+
+## MSM
+```{r}
+kruskal.by.MSM.res.p <- vector(mode="numeric")
+for(module in rownames(summed.GMM.rels)){
+    res <- kruskal.test(x=merged.df[,module], g=merged.df$MSM)
+    kruskal.by.MSM.res.p <- c(kruskal.by.MSM.res.p, res$p.value)
+}
+
+kruskal.by.MSM.res.df <- data.frame("GMM"=rownames(summed.GMM.rels), 
+                                    "p"=p.adjust(kruskal.by.MSM.res.p, method="fdr"))
+
+kruskal.by.MSM.res.df[order(kruskal.by.MSM.res.df$p),] %>% 
+    head(20) %>%
+    knitr::kable()
+
+```
+
+
+## MSM vs all others
+```{r}
+merged.df$MSMT <- merged.df$MSM=="MSM"
+kruskal.by.MSM.res.p <- vector(mode="numeric")
+for(module in rownames(summed.GMM.rels)){
+    res <- kruskal.test(x=merged.df[,module], g=merged.df$MSMT)
+    kruskal.by.MSM.res.p <- c(kruskal.by.MSM.res.p, res$p.value)
+}
+
+kruskal.by.MSM.res.df <- data.frame("GMM"=rownames(summed.GMM.rels), 
+                                    "p"=p.adjust(kruskal.by.MSM.res.p, method="fdr"))
+
+kruskal.by.MSM.res.df[order(kruskal.by.MSM.res.df$p),] %>% 
+    head(20) %>%
+    knitr::kable()
+
+```
+
