@@ -11,7 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load("tidyverse",
                "ggplot2",
                "DESeq2",
-               "EnhancedVolcano")
+               "EnhancedVolcano",
+               "pathfindR")
 # set ggplot theme
 theme_set(theme_bw())
 ```
@@ -154,6 +155,7 @@ gns.only.subset <- gns.only[,subset_metadata$Sample_ID]
 ```
 
 ## HIV Status
+### Run DESeq2
 ```{r DESeq_run}
 ds.dat <- DESeqDataSetFromMatrix(countData=gns.only.subset, 
                                  colData=subset_metadata,
@@ -168,10 +170,28 @@ res <- results(dds, contrast=c("HIV_Status", "Negative", "Positive"))
 res[order(res$padj),] %>% as.data.frame() %>% head(n=5)
 ```
 
+### Volcano plot
 ```{r DESeq_volcano}
  EnhancedVolcano(res,
     lab = rownames(res),
     x = 'log2FoldChange',
     y = 'pvalue')
+
+```
+
+### pathfindR to map gene ids to pathways
+```{r}
+# Grab the relevant columns from the DESeq2 results
+pfr.in <- res[,c("log2FoldChange", "padj")] %>% as.data.frame()
+pfr.in$Geneid <- rownames(pfr.in)
+
+# order columns to be "Geneid", "log2FoldChange", "padj"
+pfr.in <- pfr.in[,c(3,1,2)]
+
+# remove NA p values
+pfr.in <- pfr.in %>% filter(is.na(padj)==F)
+
+pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
+                         visualize_enriched_terms=F, plot_enrichment_chart=F)
 
 ```
