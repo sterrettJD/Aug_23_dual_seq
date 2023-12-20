@@ -9,7 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 pacman::p_load("tidyverse",
-               "ggplot2")
+               "ggplot2",
+               "DESeq2",
+               "EnhancedVolcano")
 # set ggplot theme
 theme_set(theme_bw())
 ```
@@ -44,6 +46,8 @@ tpm <- function(counts,len) {
 
 gns.only.tpm <- tpm(gns.only, gn$Length)
 gns.only.tpm.pseudo <- tpm(gns.only+1, gn$Length)
+
+write.csv(gns.only.tpm, "../seq.f0.0.r0.0.host//host_gene_counts_tpm.csv")
 
 ```
 
@@ -120,4 +124,54 @@ tpm.aitch.pcoa.dat %>%
 tpm.aitch.pcoa.dat %>%
     ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
     geom_point(size=4)
+```
+
+# Differential Expression {.tabset}
+## Prep data
+```{r DESeq_prep}
+metadata <- merge(metadata,
+                  tpm.aitch.pcoa.dat[c("Row.names", "storage_method")], 
+                  by.x="Sample_ID", by.y="Row.names")
+
+get_timepoint <- function(sampleIDs) {
+  split_strings <- str_split(sampleIDs, "_")
+  # LG samples don't have a timepoint, so we'll just fill in "1" for them
+  timepoints <- sapply(split_strings, function(x) {
+    if (length(x) >= 3) {
+      return(as.numeric(x[3]))
+    } else {
+      return(1)
+    }
+  })
+  return(timepoints)
+}
+
+metadata$timepoint <- get_timepoint(metadata$Sample_ID)
+
+subset_metadata <- metadata %>% filter(storage_method=="RNALater",
+                                       timepoint==1)
+gns.only.subset <- gns.only[,subset_metadata$Sample_ID]
+```
+
+## HIV Status
+```{r DESeq_run}
+ds.dat <- DESeqDataSetFromMatrix(countData=gns.only.subset, 
+                                 colData=subset_metadata,
+                                 design=~HIV_Status)
+
+# filter low count genes
+keep <- rowSums(counts(ds.dat)) >= 10
+ds.dat <- ds.dat[keep,]
+
+dds <- DESeq(ds.dat)
+res <- results(dds, contrast=c("HIV_Status", "Negative", "Positive"))
+res[order(res$padj),] %>% as.data.frame() %>% head(n=5)
+```
+
+```{r DESeq_volcano}
+ EnhancedVolcano(res,
+    lab = rownames(res),
+    x = 'log2FoldChange',
+    y = 'pvalue')
+
 ```
