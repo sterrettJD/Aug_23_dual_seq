@@ -175,13 +175,19 @@ res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
 res <- res[order(res$padj),] 
 res.ape <- res.ape[order(res.ape$padj),] 
 
-res %>% as.data.frame() %>% head(n=5)
-res.ape %>% as.data.frame() %>% head(n=5)
+res %>% as.data.frame() %>% head(n=10) %>% 
+    knitr::kable(caption="Top DEGs")
+res.ape %>% as.data.frame() %>% head(n=10) %>% 
+    knitr::kable(caption="Top DEGs with LFC shrinkage applied")
 ```
 
 ### Volcano plot {.tabset}
+Plots show unadjusted p values. The bonferroni-adjusted p value threshold is between 5 and 6 on the y axis, and if we do a Benjamini-Hochberg correction, again only genes with p < 10^-5 are significant. 
+
+To the left indicates higher expression in HIV(-) individuals, and to the right indicates higher expression in HIV(+) individuals.
+
 #### Apeglm shrunken LFC
-```{r DESeq_volcano_shrunk}
+```{r DESeq_volcano_shrunk, fig.height=8}
 EnhancedVolcano(res.ape,
                 lab = rownames(res.ape),
                 x = 'log2FoldChange',
@@ -191,7 +197,7 @@ EnhancedVolcano(res.ape,
 ```
 
 #### Raw LFC
-```{r DESeq_volcano_raw}
+```{r DESeq_volcano_raw, fig.height=8}
 EnhancedVolcano(res,
                 lab = rownames(res),
                 x = 'log2FoldChange',
@@ -202,6 +208,7 @@ EnhancedVolcano(res,
 
 
 ### pathfindR to map gene ids to pathways
+PathfindR errors because it can't really do anything with the 2 differentially expressed genes.
 ```{r pathfindR, eval=FALSE}
 # Grab the relevant columns from the DESeq2 results
 pfr.in <- res[,c("log2FoldChange", "padj")] %>% as.data.frame()
@@ -228,7 +235,7 @@ res2 <- res %>% as.data.frame() %>%
 res2$SYMBOL <- rownames(res2)
 # create a named vector of the gene stats
 ranks <- tibble::deframe(res2[c("SYMBOL", "stat")])
-# read in pathways, https://www.gsea-msigdb.org/gsea/msigdb
+# read in Hallmark pathways, https://www.gsea-msigdb.org/gsea/msigdb
 pathways.hallmark <- gmtPathways("../h.all.v2023.2.Hs.symbols.gmt")
 
 fgseaRes <- fgsea(pathways=pathways.hallmark, stats=ranks)
