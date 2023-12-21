@@ -12,7 +12,9 @@ pacman::p_load("tidyverse",
                "ggplot2",
                "DESeq2",
                "EnhancedVolcano",
-               "pathfindR")
+               "pathfindR",
+               "fgsea")
+
 # set ggplot theme
 theme_set(theme_bw())
 ```
@@ -127,7 +129,7 @@ tpm.aitch.pcoa.dat %>%
     geom_point(size=4)
 ```
 
-# Differential Expression {.tabset}
+# Differential Expressions
 ## Prep data
 ```{r DESeq_prep}
 metadata <- merge(metadata,
@@ -166,21 +168,41 @@ keep <- rowSums(counts(ds.dat)) >= 10
 ds.dat <- ds.dat[keep,]
 
 dds <- DESeq(ds.dat)
-res <- results(dds, contrast=c("HIV_Status", "Negative", "Positive"))
-res[order(res$padj),] %>% as.data.frame() %>% head(n=5)
+res <- results(dds, contrast=c("HIV_Status", "Positive", "Negative"), 
+               pAdjustMethod="fdr")
+res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
+
+res <- res[order(res$padj),] 
+res.ape <- res.ape[order(res.ape$padj),] 
+
+res %>% as.data.frame() %>% head(n=5)
+res.ape %>% as.data.frame() %>% head(n=5)
 ```
 
-### Volcano plot
-```{r DESeq_volcano}
- EnhancedVolcano(res,
-    lab = rownames(res),
-    x = 'log2FoldChange',
-    y = 'pvalue')
+### Volcano plot {.tabset}
+#### Apeglm shrunken LFC
+```{r DESeq_volcano_shrunk}
+EnhancedVolcano(res.ape,
+                lab = rownames(res.ape),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                pCutoff = 0.05)
 
 ```
+
+#### Raw LFC
+```{r DESeq_volcano_raw}
+EnhancedVolcano(res,
+                lab = rownames(res),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                pCutoff = 0.05)
+
+```
+
 
 ### pathfindR to map gene ids to pathways
-```{r}
+```{r pathfindR, eval=FALSE}
 # Grab the relevant columns from the DESeq2 results
 pfr.in <- res[,c("log2FoldChange", "padj")] %>% as.data.frame()
 pfr.in$Geneid <- rownames(pfr.in)
@@ -194,4 +216,38 @@ pfr.in <- pfr.in %>% filter(is.na(padj)==F)
 pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
                          visualize_enriched_terms=F, plot_enrichment_chart=F)
 
+```
+
+### GSEA
+```{r gsea, fig.height=10}
+res2 <- res %>% as.data.frame() %>%
+  select(stat) %>% 
+  na.omit() %>% 
+  arrange(stat)
+
+res2$SYMBOL <- rownames(res2)
+# create a named vector of the gene stats
+ranks <- tibble::deframe(res2[c("SYMBOL", "stat")])
+# read in pathways, https://www.gsea-msigdb.org/gsea/msigdb
+pathways.hallmark <- gmtPathways("../h.all.v2023.2.Hs.symbols.gmt")
+
+fgseaRes <- fgsea(pathways=pathways.hallmark, stats=ranks)
+
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  arrange(padj) %>% 
+  knitr::kable()
+
+ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
 ```
