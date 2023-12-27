@@ -225,8 +225,8 @@ pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
 
 ```
 
-### GSEA
-```{r gsea, fig.height=10}
+### GSEA {.tabset}
+```{r}
 res2 <- res %>% as.data.frame() %>%
   select(stat) %>% 
   na.omit() %>% 
@@ -237,7 +237,13 @@ res2$SYMBOL <- rownames(res2)
 ranks <- tibble::deframe(res2[c("SYMBOL", "stat")])
 # read in Hallmark pathways, https://www.gsea-msigdb.org/gsea/msigdb
 pathways.hallmark <- gmtPathways("../h.all.v2023.2.Hs.symbols.gmt")
+pathways.c2 <- gmtPathways("../c2.cp.v2023.2.Hs.symbols.gmt")
+pathways.c7.immune <- gmtPathways("../c7.immunesigdb.v2023.2.Hs.symbols.gmt")
+pathways.celltype <- gmtPathways("../c8.all.v2023.2.Hs.symbols.gmt")
 
+```
+#### Hallmark
+```{r gsea, fig.height=10}
 fgseaRes <- fgsea(pathways=pathways.hallmark, stats=ranks)
 
 
@@ -248,6 +254,7 @@ fgseaResTidy <- fgseaRes %>%
 # Show in a nice table:
 fgseaResTidy %>% 
   dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
   arrange(padj) %>% 
   knitr::kable()
 
@@ -257,4 +264,75 @@ ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
   labs(x="Pathway", y="Normalized Enrichment Score",
        title="Hallmark pathways NES from GSEA") + 
   theme_minimal()
+```
+
+#### Curated Gene Sets
+```{r gsea.c2, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.c2, stats=ranks)
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  knitr::kable()
+
+#ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+#  geom_col(aes(fill=padj<0.05)) +
+#  coord_flip() +
+#  labs(x="Pathway", y="Normalized Enrichment Score",
+#       title="Curated gene sets NES from GSEA") + 
+#  theme_minimal()
+```
+
+#### Immune
+```{r gsea.immune, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.c7.immune, stats=ranks)
+
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  knitr::kable()
+
+#ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+#  geom_col(aes(fill=padj<0.05)) +
+#  coord_flip() +
+#  labs(x="Pathway", y="Normalized Enrichment Score",
+#       title="Hallmark pathways NES from GSEA") + 
+#  theme_minimal()
+```
+
+#### Cell types
+```{r gsea.celltype, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.celltype, stats=ranks)
+
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  knitr::kable()
+
+#ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+#  geom_col(aes(fill=padj<0.05)) +
+#  coord_flip() +
+#  labs(x="Pathway", y="Normalized Enrichment Score",
+#       title="Hallmark pathways NES from GSEA") + 
+#  theme_minimal()
 ```
