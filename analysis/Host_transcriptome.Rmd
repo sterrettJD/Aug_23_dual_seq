@@ -181,6 +181,21 @@ res.ape %>% as.data.frame() %>% head(n=10) %>%
     knitr::kable(caption="Top DEGs with LFC shrinkage applied")
 ```
 
+### MA Plot {.tabset}
+
+#### Apeglm shrunken LFC
+```{r ma_shrunk, fig.height=6}
+plotMA(res.ape, ylim=c(-2,2))
+
+```
+
+#### Raw LFC
+```{r ma_raw, fig.height=6}
+plotMA(res, ylim=c(-2,2))
+
+```
+
+
 ### Volcano plot {.tabset}
 Plots show unadjusted p values. The bonferroni-adjusted p value threshold is between 5 and 6 on the y axis, and if we do a Benjamini-Hochberg correction, again only genes with p < 10^-5 are significant. 
 
@@ -227,14 +242,14 @@ pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
 
 ### GSEA {.tabset}
 ```{r}
-res2 <- res %>% as.data.frame() %>%
-  select(stat) %>% 
+res2 <- res.ape %>% as.data.frame() %>%
+  select(pvalue) %>% 
   na.omit() %>% 
-  arrange(stat)
+  arrange(pvalue)
 
 res2$SYMBOL <- rownames(res2)
 # create a named vector of the gene stats
-ranks <- tibble::deframe(res2[c("SYMBOL", "stat")])
+ranks <- tibble::deframe(res2[c("SYMBOL", "pvalue")])
 # read in Hallmark pathways, https://www.gsea-msigdb.org/gsea/msigdb
 pathways.hallmark <- gmtPathways("../h.all.v2023.2.Hs.symbols.gmt")
 pathways.c2 <- gmtPathways("../c2.cp.v2023.2.Hs.symbols.gmt")
