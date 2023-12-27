@@ -243,9 +243,9 @@ pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
 ### GSEA {.tabset}
 ```{r}
 res2 <- res.ape %>% as.data.frame() %>%
+  arrange(pvalue, log2FoldChange) %>%
   select(pvalue) %>% 
-  na.omit() %>% 
-  arrange(pvalue)
+  na.omit()
 
 res2$SYMBOL <- rownames(res2)
 # create a named vector of the gene stats
@@ -296,6 +296,8 @@ fgseaResTidy %>%
   arrange(padj) %>% 
   knitr::kable()
 
+hist(fgseaResTidy$padj)
+
 #ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
 #  geom_col(aes(fill=padj<0.05)) +
 #  coord_flip() +
@@ -320,6 +322,8 @@ fgseaResTidy %>%
   arrange(padj) %>% 
   knitr::kable()
 
+hist(fgseaResTidy$padj)
+
 #ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
 #  geom_col(aes(fill=padj<0.05)) +
 #  coord_flip() +
@@ -332,7 +336,6 @@ fgseaResTidy %>%
 ```{r gsea.celltype, fig.height=10}
 fgseaRes <- fgsea(pathways=pathways.celltype, stats=ranks)
 
-
 fgseaResTidy <- fgseaRes %>%
   as_tibble() %>%
   arrange(desc(NES))
@@ -343,6 +346,8 @@ fgseaResTidy %>%
   filter(!is.na(log2err)) %>%
   arrange(padj) %>% 
   knitr::kable()
+
+hist(fgseaResTidy$padj)
 
 #ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
 #  geom_col(aes(fill=padj<0.05)) +
