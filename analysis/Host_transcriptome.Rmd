@@ -244,12 +244,12 @@ pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
 ```{r}
 res2 <- res.ape %>% as.data.frame() %>%
   arrange(pvalue, log2FoldChange) %>%
-  select(pvalue) %>% 
+  select(log2FoldChange) %>% 
   na.omit()
 
 res2$SYMBOL <- rownames(res2)
 # create a named vector of the gene stats
-ranks <- tibble::deframe(res2[c("SYMBOL", "pvalue")])
+ranks <- tibble::deframe(res2[c("SYMBOL", "log2FoldChange")])
 # read in Hallmark pathways, https://www.gsea-msigdb.org/gsea/msigdb
 pathways.hallmark <- gmtPathways("../h.all.v2023.2.Hs.symbols.gmt")
 pathways.c2 <- gmtPathways("../c2.cp.v2023.2.Hs.symbols.gmt")
@@ -271,6 +271,7 @@ fgseaResTidy %>%
   dplyr::select(-leadingEdge, -ES) %>% 
   filter(!is.na(log2err)) %>%
   arrange(padj) %>% 
+  head(20) %>%
   knitr::kable()
 
 ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
@@ -294,16 +295,12 @@ fgseaResTidy %>%
   dplyr::select(-leadingEdge, -ES) %>% 
   filter(!is.na(log2err)) %>%
   arrange(padj) %>% 
+  head(20) %>%
   knitr::kable()
 
 hist(fgseaResTidy$padj)
 
-#ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
-#  geom_col(aes(fill=padj<0.05)) +
-#  coord_flip() +
-#  labs(x="Pathway", y="Normalized Enrichment Score",
-#       title="Curated gene sets NES from GSEA") + 
-#  theme_minimal()
+
 ```
 
 #### Immune
@@ -320,16 +317,12 @@ fgseaResTidy %>%
   dplyr::select(-leadingEdge, -ES) %>% 
   filter(!is.na(log2err)) %>%
   arrange(padj) %>% 
+  head(20) %>%
   knitr::kable()
 
 hist(fgseaResTidy$padj)
 
-#ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
-#  geom_col(aes(fill=padj<0.05)) +
-#  coord_flip() +
-#  labs(x="Pathway", y="Normalized Enrichment Score",
-#       title="Hallmark pathways NES from GSEA") + 
-#  theme_minimal()
+
 ```
 
 #### Cell types
@@ -345,14 +338,9 @@ fgseaResTidy %>%
   dplyr::select(-leadingEdge, -ES) %>% 
   filter(!is.na(log2err)) %>%
   arrange(padj) %>% 
+  head(20) %>%
   knitr::kable()
 
 hist(fgseaResTidy$padj)
 
-#ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
-#  geom_col(aes(fill=padj<0.05)) +
-#  coord_flip() +
-#  labs(x="Pathway", y="Normalized Enrichment Score",
-#       title="Hallmark pathways NES from GSEA") + 
-#  theme_minimal()
 ```
