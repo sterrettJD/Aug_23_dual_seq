@@ -129,7 +129,7 @@ tpm.aitch.pcoa.dat %>%
     geom_point(size=4)
 ```
 
-# Differential Expressions
+# Differential Expression {.tabset}
 ## Prep data
 ```{r DESeq_prep}
 metadata <- merge(metadata,
@@ -327,6 +327,192 @@ hist(fgseaResTidy$padj)
 
 #### Cell types
 ```{r gsea.celltype, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.celltype, stats=ranks)
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  head(20) %>%
+  knitr::kable()
+
+hist(fgseaResTidy$padj)
+
+```
+
+
+## MSM Status
+### Run DESeq2
+```{r DESeq_run.msm}
+subset_metadata$is_MSM <- subset_metadata$MSM=="MSM"
+ds.dat <- DESeqDataSetFromMatrix(countData=gns.only.subset, 
+                                 colData=subset_metadata,
+                                 design=~is_MSM)
+
+# filter low count genes
+keep <- rowSums(counts(ds.dat)) >= 10
+ds.dat <- ds.dat[keep,]
+
+dds <- DESeq(ds.dat)
+res <- results(dds,  
+               pAdjustMethod="fdr")
+res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
+
+res <- res[order(res$padj),] 
+res.ape <- res.ape[order(res.ape$padj),] 
+
+res %>% as.data.frame() %>% head(n=10) %>% 
+    knitr::kable(caption="Top DEGs")
+res.ape %>% as.data.frame() %>% head(n=10) %>% 
+    knitr::kable(caption="Top DEGs with LFC shrinkage applied")
+```
+
+### MA Plot {.tabset}
+
+#### Apeglm shrunken LFC
+```{r ma_shrunk.msm, fig.height=6}
+plotMA(res.ape, ylim=c(-2,2))
+
+```
+
+#### Raw LFC
+```{r ma_raw.msm, fig.height=6}
+plotMA(res, ylim=c(-2,2))
+
+```
+
+
+### Volcano plot {.tabset}
+Plots show unadjusted p values. The bonferroni-adjusted p value threshold is between 5 and 6 on the y axis, and if we do a Benjamini-Hochberg correction, again only genes with p < 10^-5 are significant. 
+
+To the left indicates higher expression in MSM individuals, and to the right indicates higher expression in non-MSM individuals.
+
+#### Apeglm shrunken LFC
+```{r DESeq_volcano_shrunk.msm, fig.height=8}
+EnhancedVolcano(res.ape,
+                lab = rownames(res.ape),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                pCutoff = 0.05)
+
+```
+
+#### Raw LFC
+```{r DESeq_volcano_raw.msm, fig.height=8}
+EnhancedVolcano(res,
+                lab = rownames(res),
+                x = 'log2FoldChange',
+                y = 'pvalue',
+                pCutoff = 0.05)
+
+```
+
+
+### pathfindR to map gene ids to pathways
+PathfindR errors because it can't really do anything with the 2 differentially expressed genes.
+```{r pathfindR.msm, eval=FALSE}
+# Grab the relevant columns from the DESeq2 results
+pfr.in <- res.ape[,c("log2FoldChange", "padj")] %>% as.data.frame()
+pfr.in$Geneid <- rownames(pfr.in)
+
+# order columns to be "Geneid", "log2FoldChange", "padj"
+pfr.in <- pfr.in[,c(3,1,2)]
+
+# remove NA p values
+pfr.in <- pfr.in %>% filter(is.na(padj)==F)
+
+pfr.res <- run_pathfindR(pfr.in, output_dir="pathfindR",
+                         visualize_enriched_terms=F, plot_enrichment_chart=F)
+
+```
+
+### GSEA {.tabset}
+```{r}
+res2 <- res.ape %>% as.data.frame() %>%
+  arrange(pvalue, log2FoldChange) %>%
+  select(log2FoldChange) %>% 
+  na.omit()
+
+res2$SYMBOL <- rownames(res2)
+# create a named vector of the gene stats
+ranks <- tibble::deframe(res2[c("SYMBOL", "log2FoldChange")])
+
+```
+#### Hallmark
+```{r gsea.msm, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.hallmark, stats=ranks)
+
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  head(20) %>%
+  knitr::kable()
+
+ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+```
+
+#### Curated Gene Sets
+```{r gsea.c2.msm, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.c2, stats=ranks)
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  head(20) %>%
+  knitr::kable()
+
+hist(fgseaResTidy$padj)
+
+
+```
+
+#### Immune
+```{r gsea.immune.msm, fig.height=10}
+fgseaRes <- fgsea(pathways=pathways.c7.immune, stats=ranks)
+
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  head(20) %>%
+  knitr::kable()
+
+hist(fgseaResTidy$padj)
+
+
+```
+
+#### Cell types
+```{r gsea.celltype.msm, fig.height=10}
 fgseaRes <- fgsea(pathways=pathways.celltype, stats=ranks)
 
 fgseaResTidy <- fgseaRes %>%
