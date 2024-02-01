@@ -13,10 +13,12 @@ pacman::p_load("tidyverse",
                "DESeq2",
                "EnhancedVolcano",
                "pathfindR",
-               "fgsea")
+               "fgsea",
+               "IHW")
 
 # set ggplot theme
 theme_set(theme_bw())
+dir.create("output", showWarnings = FALSE)
 ```
 
 # Load data
@@ -171,6 +173,16 @@ dds <- DESeq(ds.dat)
 res <- results(dds, contrast=c("HIV_Status", "Positive", "Negative"), 
                pAdjustMethod="fdr")
 res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm")
+# https://support.bioconductor.org/p/9141271/
+#res.ape <- lfcShrink(dds=dds, coef=2, type="apeglm", 
+#                     lfcThreshold=log(1.5, base=2),
+#                     svalue=FALSE)
+
+#resIHW <- results(dds, filterFun=ihw)
+#summary(resIHW)
+#resIHW[resIHW$padj < 0.1,]
+#metadata(resIHW)$ihwResult
+
 
 res <- res[order(res$padj),] 
 res.ape <- res.ape[order(res.ape$padj),] 
@@ -179,6 +191,9 @@ res %>% as.data.frame() %>% head(n=10) %>%
     knitr::kable(caption="Top DEGs")
 res.ape %>% as.data.frame() %>% head(n=10) %>% 
     knitr::kable(caption="Top DEGs with LFC shrinkage applied")
+
+res %>% write.csv("output/NOTadjusted_DESeq2results_HIV.csv")
+res.ape %>% write.csv("output/APE_adjusted_DESeq2results_HIV.csv")
 ```
 
 ### MA Plot {.tabset}
@@ -280,6 +295,12 @@ ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
   labs(x="Pathway", y="Normalized Enrichment Score",
        title="Hallmark pathways NES from GSEA") + 
   theme_minimal()
+
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  write.csv("output/GSEA_Hallmark_HIV.csv")
 ```
 
 #### Curated Gene Sets
@@ -300,6 +321,11 @@ fgseaResTidy %>%
 
 hist(fgseaResTidy$padj)
 
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>% 
+  write.csv("output/GSEA_Curated_HIV.csv")
 
 ```
 
@@ -322,7 +348,11 @@ fgseaResTidy %>%
 
 hist(fgseaResTidy$padj)
 
-
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  filter(!is.na(log2err)) %>%
+  arrange(padj) %>%
+  write.csv("output/GSEA_Immune_HIV.csv")
 ```
 
 #### Cell types
@@ -507,8 +537,6 @@ fgseaResTidy %>%
   knitr::kable()
 
 hist(fgseaResTidy$padj)
-
-
 ```
 
 #### Cell types
