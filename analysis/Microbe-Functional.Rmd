@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 pacman::p_load("tidyverse",
-               "ggplot2")
+               "ggplot2",
+               "HoMiStats")
 # set ggplot theme
 theme_set(theme_bw())
 ```
@@ -18,6 +19,7 @@ theme_set(theme_bw())
 ```{r}
 gf <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies.tsv",
                         data.table=F)
+
 rownames(gf) <- gf$`# Gene Family`
 gf$`# Gene Family` <- NULL
 gf <- gf %>% mutate_all(as.numeric)
@@ -28,6 +30,23 @@ gf.tax.rows <- rownames(gf) %>% grepl(pattern="\\|")
 gf.notax <- gf[!gf.tax.rows,]
 gf.tax <- gf[gf.tax.rows,]
 
+# GO terms
+gf.go <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_go_named.tsv",
+                        data.table=F)
+
+rownames(gf.go) <- gf.go$`# Gene Family`
+gf.go$`# Gene Family` <- NULL
+gf.go <- gf.go %>% mutate_all(as.numeric)
+colnames(gf.go) <- colnames(gf.go) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+
+gf.go.tax.rows <- rownames(gf.go) %>% grepl(pattern="\\|")
+gf.go.notax <- gf.go[!gf.go.tax.rows,]
+gf.go.tax <- gf.go[gf.go.tax.rows,]
+
+
+# Metadata
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
                         data.table=F)
 
@@ -170,6 +189,23 @@ tax.aitch.pcoa.dat %>%
     geom_point(size=4) +
     ggrepel::geom_label_repel(color="black")
     
+```
+
+# Differential Expression using HoMiStats
+## GO terms
+```{r homistats}
+gf.go.notax.rel <- t(gf.go.notax)/colSums(gf.go.notax)
+
+go.DE <- run_mtxDE("HIV_Status", 
+                   feature.table=gf.go.notax.rel, metadata=metadata,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr")
+
+go.DE %>% filter(term=="var1",
+                 q <= 0.05) %>%
+    arrange(q, descending=F) %>%
+    head(20) %>% 
+    select(feature)
 ```
 
 
