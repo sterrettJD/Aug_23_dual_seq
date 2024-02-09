@@ -62,6 +62,37 @@ gf.pfam.notax <- gf.pfam[!gf.pfam.tax.rows,]
 gf.pfam.tax <- gf.pfam[gf.pfam.tax.rows,]
 
 
+# KO
+gf.ko <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_ko_named.tsv",
+                        data.table=F)
+
+rownames(gf.ko) <- gf.ko$`# Gene Family`
+gf.ko$`# Gene Family` <- NULL
+gf.ko <- gf.ko %>% mutate_all(as.numeric)
+colnames(gf.ko) <- colnames(gf.ko) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+
+gf.ko.tax.rows <- rownames(gf.ko) %>% grepl(pattern="\\|")
+gf.ko.notax <- gf.ko[!gf.ko.tax.rows,]
+gf.ko.tax <- gf.ko[gf.ko.tax.rows,]
+
+
+# RXN EC
+gf.rxn <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_rxn_named.tsv",
+                        data.table=F)
+
+rownames(gf.rxn) <- gf.rxn$`# Gene Family`
+gf.rxn$`# Gene Family` <- NULL
+gf.rxn <- gf.rxn %>% mutate_all(as.numeric)
+colnames(gf.rxn) <- colnames(gf.rxn) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+
+gf.rxn.tax.rows <- rownames(gf.rxn) %>% grepl(pattern="\\|")
+gf.rxn.notax <- gf.rxn[!gf.rxn.tax.rows,]
+gf.rxn.tax <- gf.rxn[gf.rxn.tax.rows,]
+
 # Metadata
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
                         data.table=F)
@@ -262,6 +293,29 @@ pfam.DE %>% filter(term=="var1",
 
 ```
 
+
+## KO
+```{r homistats_ko}
+gf.ko.notax.rel <- t(gf.ko.notax)/colSums(gf.ko.notax)
+gf.ko.notax.rel.nonlong.nopbs <- gf.ko.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
+
+ko.DE <- run_mtxDE("HIV_Status_num", 
+                   feature.table=gf.ko.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr")
+
+ko.DE %>% filter(term=="var1",
+                 q <= 0.2) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+
 ## GO terms
 ```{r homistats_go}
 gf.go.notax.rel <- t(gf.go.notax)/colSums(gf.go.notax)
@@ -274,6 +328,28 @@ go.DE <- run_mtxDE("HIV_Status_num",
                    reg.method="zibr")
 
 go.DE %>% filter(term=="var1",
+                 q <= 0.05) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+
+## RXN numbers
+```{r homistats_rxn}
+gf.rxn.notax.rel <- t(gf.rxn.notax)/colSums(gf.rxn.notax)
+gf.rxn.notax.rel.nonlong.nopbs <- gf.rxn.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
+
+rxn.DE <- run_mtxDE("HIV_Status_num", 
+                   feature.table=gf.rxn.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr")
+
+rxn.DE %>% filter(term=="var1",
                  q <= 0.05) %>%
     arrange(q, descending=F) %>%
     select(c(feature,
