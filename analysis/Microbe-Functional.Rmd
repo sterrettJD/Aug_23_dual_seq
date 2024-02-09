@@ -46,6 +46,22 @@ gf.go.notax <- gf.go[!gf.go.tax.rows,]
 gf.go.tax <- gf.go[gf.go.tax.rows,]
 
 
+# Pfams
+gf.pfam <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_pfam_named.tsv",
+                        data.table=F)
+
+rownames(gf.pfam) <- gf.pfam$`# Gene Family`
+gf.pfam$`# Gene Family` <- NULL
+gf.pfam <- gf.pfam %>% mutate_all(as.numeric)
+colnames(gf.pfam) <- colnames(gf.pfam) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+
+gf.pfam.tax.rows <- rownames(gf.pfam) %>% grepl(pattern="\\|")
+gf.pfam.notax <- gf.pfam[!gf.pfam.tax.rows,]
+gf.pfam.tax <- gf.pfam[gf.pfam.tax.rows,]
+
+
 # Metadata
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
                         data.table=F)
@@ -191,21 +207,80 @@ tax.aitch.pcoa.dat %>%
     
 ```
 
-# Differential Expression using HoMiStats
-## GO terms
-```{r homistats}
-gf.go.notax.rel <- t(gf.go.notax)/colSums(gf.go.notax)
+# Differential Expression using HoMiStats {.tabset}
+## Setup
+```{r DEsetup}
+metadata$HIV_Status_num <- metadata$HIV_Status %>%
+    as.factor() %>%
+    as.numeric() - 1
 
-go.DE <- run_mtxDE("HIV_Status", 
-                   feature.table=gf.go.notax.rel, metadata=metadata,
+metadata$Participant_num <- metadata$Participant %>%
+    as.factor() %>%
+    as.numeric() - 1
+
+get_timepoint <- function(sampleIDs) {
+  split_strings <- str_split(sampleIDs, "_")
+  # LG samples don't have a timepoint, so we'll just fill in "1" for them
+  timepoints <- sapply(split_strings, function(x) {
+    if (length(x) >= 3) {
+      return(as.numeric(x[3]))
+    } else {
+      return(1)
+    }
+  })
+  return(timepoints)
+}
+
+metadata$Timepoint <- get_timepoint(metadata$Sample_ID)
+metadata.nonlong <- metadata %>%
+    filter(Timepoint==1)
+
+metadata.nonlong.nopbs <- metadata %>%
+    filter(Timepoint==1,
+           storage_method!="PBS")
+```
+
+
+## Pfams
+```{r homistats_pfam}
+gf.pfam.notax.rel <- t(gf.pfam.notax)/colSums(gf.pfam.notax)
+gf.pfam.notax.rel.nonlong.nopbs <- gf.pfam.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
+
+pfam.DE <- run_mtxDE("HIV_Status_num", 
+                   feature.table=gf.pfam.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr")
+
+pfam.DE %>% filter(term=="var1",
+                 q <= 0.2) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+## GO terms
+```{r homistats_go}
+gf.go.notax.rel <- t(gf.go.notax)/colSums(gf.go.notax)
+gf.go.notax.rel.nonlong.nopbs <- gf.go.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
+
+go.DE <- run_mtxDE("HIV_Status_num", 
+                   feature.table=gf.go.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
                    sampleID="Sample_ID", 
                    reg.method="zibr")
 
 go.DE %>% filter(term=="var1",
                  q <= 0.05) %>%
     arrange(q, descending=F) %>%
-    head(20) %>% 
-    select(feature)
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
 ```
 
 
