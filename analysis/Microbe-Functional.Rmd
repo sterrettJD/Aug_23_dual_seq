@@ -273,7 +273,7 @@ metadata.nonlong.nopbs <- metadata %>%
 
 
 ## Pfams
-```{r homistats_pfam}
+```{r homistats_pfam, warning=F}
 gf.pfam.notax.rel <- t(gf.pfam.notax)/colSums(gf.pfam.notax)
 gf.pfam.notax.rel.nonlong.nopbs <- gf.pfam.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
 
@@ -281,7 +281,9 @@ pfam.DE <- run_mtxDE("HIV_Status_num",
                    feature.table=gf.pfam.notax.rel.nonlong.nopbs, 
                    metadata=metadata.nonlong.nopbs,
                    sampleID="Sample_ID", 
-                   reg.method="zibr")
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
 
 pfam.DE %>% filter(term=="var1",
                  q <= 0.2) %>%
@@ -295,7 +297,7 @@ pfam.DE %>% filter(term=="var1",
 
 
 ## KO
-```{r homistats_ko}
+```{r homistats_ko, warning=F}
 gf.ko.notax.rel <- t(gf.ko.notax)/colSums(gf.ko.notax)
 gf.ko.notax.rel.nonlong.nopbs <- gf.ko.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
 
@@ -303,7 +305,9 @@ ko.DE <- run_mtxDE("HIV_Status_num",
                    feature.table=gf.ko.notax.rel.nonlong.nopbs, 
                    metadata=metadata.nonlong.nopbs,
                    sampleID="Sample_ID", 
-                   reg.method="zibr")
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
 
 ko.DE %>% filter(term=="var1",
                  q <= 0.2) %>%
@@ -317,7 +321,7 @@ ko.DE %>% filter(term=="var1",
 
 
 ## GO terms
-```{r homistats_go}
+```{r homistats_go, warning=F}
 gf.go.notax.rel <- t(gf.go.notax)/colSums(gf.go.notax)
 gf.go.notax.rel.nonlong.nopbs <- gf.go.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
 
@@ -325,7 +329,9 @@ go.DE <- run_mtxDE("HIV_Status_num",
                    feature.table=gf.go.notax.rel.nonlong.nopbs, 
                    metadata=metadata.nonlong.nopbs,
                    sampleID="Sample_ID", 
-                   reg.method="zibr")
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
 
 go.DE %>% filter(term=="var1",
                  q <= 0.05) %>%
@@ -339,7 +345,7 @@ go.DE %>% filter(term=="var1",
 
 
 ## RXN numbers
-```{r homistats_rxn}
+```{r homistats_rxn, warning=F}
 gf.rxn.notax.rel <- t(gf.rxn.notax)/colSums(gf.rxn.notax)
 gf.rxn.notax.rel.nonlong.nopbs <- gf.rxn.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
 
@@ -347,7 +353,9 @@ rxn.DE <- run_mtxDE("HIV_Status_num",
                    feature.table=gf.rxn.notax.rel.nonlong.nopbs, 
                    metadata=metadata.nonlong.nopbs,
                    sampleID="Sample_ID", 
-                   reg.method="zibr")
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
 
 rxn.DE %>% filter(term=="var1",
                  q <= 0.05) %>%
