@@ -1,4 +1,7 @@
-library(HoMiStats)
+if(!require("HoMiStats")){
+    devtools::install_github("sterrettJD/HoMiStats")
+}
+
 library(tidyverse)
 
 # read in mtx KO data
@@ -48,12 +51,16 @@ host <- filter_low_variance(host, (1e-6)^2)
 # remove features found in fewer than 50% of samples
 host <- filter_sparse_features(host, 0.5)
 
+
+subset.size <- 1000
+
 time <- system.time(
-    res <- run_HoMiCorr(ko.notax.rel, host, reg.method="lm",
-                        ncores=64, show_progress=T)
+    res <- run_HoMiCorr(ko.notax.rel[,1:subset.size], host[,1:subset.size], reg.method="lm",
+                        ncores=32, show_progress=T)
 )
 
 write.csv(res, "HoMiCorr_out.csv")
+print(time)
 
 # TESTING
 # times <- c()
