@@ -1,6 +1,5 @@
 library(HoMiStats)
 library(tidyverse)
-library(doSNOW)
 
 # read in mtx KO data
 ko <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_ko_named.tsv",
@@ -49,11 +48,28 @@ host <- filter_low_variance(host, (1e-6)^2)
 # remove features found in fewer than 50% of samples
 host <- filter_sparse_features(host, 0.5)
 
-
-subset.host <- host[,1:100]
-subset.mtx <- ko.notax.rel[,1:100]
-
-system.time(
-    res <- run_HoMiCorr(subset.mtx, subset.host, reg.method="lm", ncores=8)
+time <- system.time(
+    res <- run_HoMiCorr(ko.notax.rel, host, reg.method="lm",
+                        ncores=64, show_progress=T)
 )
+
+write.csv(res, "HoMiCorr_out.csv")
+
+# TESTING
+# times <- c()
+# sizes <- c(100, 200, 400, 800)
+# for(size in sizes){
+#     subset.host <- host[1:size]
+#     subset.mtx <- ko.notax.rel[,1:size]
+#
+#     time <-system.time(
+#         res <- run_HoMiCorr(subset.mtx, subset.host, reg.method="lm", ncores=8)
+#     )
+#     times <- c(times, time[3])
+# }
+# subset.host <- host[,1:100]
+# subset.mtx <- ko.notax.rel[,1:100]
+
+
+
 
