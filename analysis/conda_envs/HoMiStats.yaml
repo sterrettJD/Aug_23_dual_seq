@@ -1,0 +1,17 @@
+name: HoMiStats
+channels:
+  - biobakery
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-essentials
+  - r-devtools
+  - r-tidyverse
+  - r-rfast
+  - ca-certificates
+  - certifi
+  - openssl
+  - anaconda::cmake
+  - conda-forge::r-nloptr
+prefix: /Users/jost9358/miniconda3/envs/HoMiStats
