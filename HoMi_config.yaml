@@ -57,11 +57,13 @@ utility_mapping_db: data/humann_dbs/utility_mapping
 
 
 #################################
-### Host read mapping (BBmap) ###
+### Host read mapping ###
 # provide the path for the host reference genome
 # if these files do not exist yet, HoMi will by default download the GRCh38 human reference genome
 host_ref_fna: GRCh38/GRCh38_full_analysis_set.fna 
 host_ref_gtf: GRCh38/GRCh38_full_analysis_set.refseq.gtf
+
+host_map_method: HISAT2
 
 ################################
 ### Resources ###
@@ -71,7 +73,7 @@ host_ref_gtf: GRCh38/GRCh38_full_analysis_set.refseq.gtf
 # rule_name_partition: new_partition
 # rule_name_mem_mb: 10000 # (10 GB)
 # rule_name_runtime: 600 # (10 hours)
-bbmap_host_partition: long
-bbmap_host_runtime: 4320 # 3 days
-bbmap_host_threads: 48
-bbmap_host_mem_mb: 250000
+map_host_partition: long
+map_host_runtime: 4320 # 3 days
+map_host_threads: 48
+map_host_mem_mb: 250000
