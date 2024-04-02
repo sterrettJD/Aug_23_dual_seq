@@ -1,8 +1,8 @@
 if(!require("HoMiStats")){
     devtools::install_github("sterrettJD/HoMiStats")
 }
-
-library(tidyverse)
+library("HoMiStats")
+library("tidyverse")
 
 # read in mtx KO data
 ko <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_ko_named.tsv",
@@ -52,10 +52,16 @@ host <- filter_low_variance(host, (1e-6)^2)
 host <- filter_sparse_features(host, 0.5)
 
 
-subset.size <- 1000
+# To run subset only
+# subset.size <- 100
+# time <- system.time(
+#     res <- run_HoMiCorr(ko.notax.rel[,1:subset.size], host[,1:subset.size], reg.method="lm",
+#                         ncores=32, show_progress=T)
+# )
+
 
 time <- system.time(
-    res <- run_HoMiCorr(ko.notax.rel[,1:subset.size], host[,1:subset.size], reg.method="lm",
+    res <- run_HoMiCorr(ko.notax.rel, host, reg.method="lm",
                         ncores=32, show_progress=T)
 )
 
