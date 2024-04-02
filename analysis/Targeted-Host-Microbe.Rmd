@@ -61,8 +61,24 @@ gf.rxn.tax.rows <- rownames(gf.rxn) %>% grepl(pattern="\\|")
 gf.rxn.notax <- gf.rxn[!gf.rxn.tax.rows,]
 gf.rxn.tax <- gf.rxn[gf.rxn.tax.rows,]
 
+# Gut metabolic modules
 gmms <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/Gut_metabolic_modules.csv",
                         data.table=F)
+rownames(gmms) <- gmms$V1
+gmms$V1 <- NULL
+
+# Host genes
+
+gn <- data.table::fread("../seq.f0.0.r0.0.host/counts.txt", data.table=F)
+colnames(gn) <- colnames(gn) %>% gsub(pattern="seq.f0.0.r0.0.host/",
+                                      replacement="")
+colnames(gn) <- colnames(gn) %>% gsub(pattern=".bam",
+                                      replacement="")
+rownames(gn) <- gn$Geneid
+gn$Geneid <- NULL
+
+gns.only <- gn[!colnames(gn) %in% c("Chr", "Start", "End", "Strand", "Length")] %>%
+    as.matrix()
 
 # Metadata
 metadata <- data.table::fread("../16s-data/16S_meta.txt",
@@ -89,6 +105,32 @@ metadata %>%
     as.data.frame() %>%
     mutate(MSM=as.factor(MSM)) %>%
     summary()
+
+get_timepoint <- function(sampleIDs) {
+  split_strings <- str_split(sampleIDs, "_")
+  # LG samples don't have a timepoint, so we'll just fill in "1" for them
+  timepoints <- sapply(split_strings, function(x) {
+    if (length(x) >= 3) {
+      return(as.numeric(x[3]))
+    } else {
+      return(1)
+    }
+  })
+  return(timepoints)
+}
+
+metadata$timepoint <- get_timepoint(metadata$Sample_ID)
+```
+
+# Subset data to create fully non-longitudinal dataset
+```{r}
+subset.metadata <- metadata %>% filter(storage_method=="RNALater",
+                                       timepoint==1)
+gf.ko.tax.subset <- gf.ko.tax[,subset.metadata$Sample_ID]
+gmms.subset <- gmms[,subset.metadata$Sample_ID]
+
+gns.only.subset <- gns.only[,subset.metadata$Sample_ID]
+
 ```
 
 # Unmapped
@@ -109,5 +151,27 @@ Individual genes involved directly in butyrate synthesis are expressed at very l
 buk <- rownames(gf.ko.notax) %>% grep(pattern="K00929")
 atoD <- rownames(gf.ko.notax) %>% grep(pattern="K01034")
 
-gf.ko.notax[c(buk, atoD),] %>% t() %>% summary
+gf.ko.notax[c(buk, atoD),] %>% t() %>% summary()
+```
+
+At the gut metabolic module level, transcripts for butyrate production are detectable. However, these two pathways are identical (the overlapping KO is K00248, 	
+butyryl-CoA dehydrogenase, which takes us farther from butyrate...)
+```{r}
+gmms["butyrate production I",] %>% unlist() %>% hist()
+gmms["butyrate production II",] %>% unlist() %>% hist()
+
+```
+
+# T cells
+Differential expression analysis on the following GO terms only:
+0042110 - T cell activation
+0050863 - Regulation of T cell activation
+```{r}
+ensembl <- biomaRt::useMart("ensembl",dataset="hsapiens_gene_ensembl") #uses human ensembl annotations
+#gets gene symbol, transcript_id and go_id for all genes annotated with GO:0007507
+gene.data <- biomaRt::getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
+                            filters='go', values='GO:0042110', mart=ensembl)
+
+t.cell.activation.genes <- unique(gene.data$hgnc_symbol)
+t.cell.activation.data <- gns.only[t.cell.activation.genes,]
 ```
