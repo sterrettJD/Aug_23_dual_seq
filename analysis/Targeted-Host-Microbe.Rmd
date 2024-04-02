@@ -1,0 +1,113 @@
+---
+title: "Targeted Host-Microbe gene expression"
+author: "John Sterrett"
+date: "2024-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load("tidyverse",
+               "ggplot2",
+               "HoMiStats")
+# set ggplot theme
+theme_set(theme_bw())
+```
+
+# Load Data
+```{r}
+gf <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies.tsv",
+                        data.table=F)
+
+rownames(gf) <- gf$`# Gene Family`
+gf$`# Gene Family` <- NULL
+gf <- gf %>% mutate_all(as.numeric)
+colnames(gf) <- colnames(gf) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+gf.tax.rows <- rownames(gf) %>% grepl(pattern="\\|")
+gf.notax <- gf[!gf.tax.rows,]
+gf.tax <- gf[gf.tax.rows,]
+
+# KO
+gf.ko <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_ko_named.tsv",
+                        data.table=F)
+
+rownames(gf.ko) <- gf.ko$`# Gene Family`
+gf.ko$`# Gene Family` <- NULL
+gf.ko <- gf.ko %>% mutate_all(as.numeric)
+colnames(gf.ko) <- colnames(gf.ko) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+
+gf.ko.tax.rows <- rownames(gf.ko) %>% grepl(pattern="\\|")
+gf.ko.notax <- gf.ko[!gf.ko.tax.rows,]
+gf.ko.tax <- gf.ko[gf.ko.tax.rows,]
+
+
+# RXN EC
+gf.rxn <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_rxn_named.tsv",
+                        data.table=F)
+
+rownames(gf.rxn) <- gf.rxn$`# Gene Family`
+gf.rxn$`# Gene Family` <- NULL
+gf.rxn <- gf.rxn %>% mutate_all(as.numeric)
+colnames(gf.rxn) <- colnames(gf.rxn) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+
+gf.rxn.tax.rows <- rownames(gf.rxn) %>% grepl(pattern="\\|")
+gf.rxn.notax <- gf.rxn[!gf.rxn.tax.rows,]
+gf.rxn.tax <- gf.rxn[gf.rxn.tax.rows,]
+
+gmms <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/Gut_metabolic_modules.csv",
+                        data.table=F)
+
+# Metadata
+metadata <- data.table::fread("../16s-data/16S_meta.txt",
+                        data.table=F)
+
+# Samples before DM 33 were stored in PBS, all others (including LG)
+is.DM <- grepl("DM", metadata$Sample_ID)
+number <- str_split(metadata$Sample_ID, pattern="_") %>% 
+    lapply(function(x){x[2]}) %>% 
+    unlist() %>% 
+    as.numeric()
+
+metadata$storage_method <- rep(NA, nrow(metadata)) %>% as.character()
+metadata[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
+metadata[is.na(metadata$storage_method), "storage_method"] <- "RNALater"
+
+metadata[is.DM, "Participant"] <- paste0("DM_", number[is.DM])
+metadata[!is.DM, "Participant"] <- paste0("LG_", number[!is.DM])
+
+metadata %>% 
+    group_by(Participant) %>% 
+    summarise(MSM=dplyr::first(MSM)) %>%
+    select(MSM) %>%
+    as.data.frame() %>%
+    mutate(MSM=as.factor(MSM)) %>%
+    summary()
+```
+
+# Unmapped
+```{r}
+sample.sums <- colSums(gf)
+percent.unmapped <- as.numeric((gf["UNMAPPED",]/sample.sums) * 100)
+names(percent.unmapped) <- colnames(gf)
+
+hist(percent.unmapped)
+
+knitr::kable(percent.unmapped, col.names="Percent unmapped")
+```
+
+# Butyrate
+
+Individual genes involved directly in butyrate synthesis are expressed at very low TPM and are sparse.
+```{r}
+buk <- rownames(gf.ko.notax) %>% grep(pattern="K00929")
+atoD <- rownames(gf.ko.notax) %>% grep(pattern="K01034")
+
+gf.ko.notax[c(buk, atoD),] %>% t() %>% summary
+```
