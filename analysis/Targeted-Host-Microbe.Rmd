@@ -178,9 +178,15 @@ get_go_term_human_genes <- function(go.term){
     return(targeted.genes)
 }
 
-go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.gene){
+go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.gene, verbose=T){
     targeted.genes <- get_go_term_human_genes(go.term)
     targeted.data <- host.genes[targeted.genes,]
+    if(verbose){
+        s1 <- paste0(length(targeted.genes), " genes identified from GO term")
+        s2 <- paste0(nrow(targeted.data), " gene in DESeq2 dataset")
+        print(s1)
+        print(s2)
+    }
     
     ds <- DESeq2::DESeqDataSetFromMatrix(
                                  countData=targeted.data, 
