@@ -162,10 +162,10 @@ gmms["butyrate production II",] %>% unlist() %>% hist()
 
 ```
 
-# T cells
-Differential expression analysis on the following GO terms only:
-0042110 - T cell activation
-0050863 - Regulation of T cell activation
+## T cells {.tabset}
+Differential expression analysis on the targeted GO terms. No real results
+
+### Setup
 ```{r function_setup}
 
 get_go_term_human_genes <- function(go.term){
@@ -180,10 +180,17 @@ get_go_term_human_genes <- function(go.term){
 
 go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.gene, verbose=T){
     targeted.genes <- get_go_term_human_genes(go.term)
+    # filter empty strings
+    targeted.genes <- targeted.genes[nzchar(targeted.genes)]
+   
+    if(verbose){
+        print(targeted.genes)
+    }
+    
     targeted.data <- host.genes[targeted.genes,]
     if(verbose){
         s1 <- paste0(length(targeted.genes), " genes identified from GO term")
-        s2 <- paste0(nrow(targeted.data), " gene in DESeq2 dataset")
+        s2 <- paste0(nrow(targeted.data), " genes in DESeq2 dataset")
         print(s1)
         print(s2)
     }
@@ -199,7 +206,7 @@ go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.g
 }
 ```
 
-0042110 - T cell activation
+### 0042110 - T cell activation
 ```{r}
 res <- go_targeted_diffex("GO:0042110", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
@@ -207,26 +214,92 @@ res <- go_targeted_diffex("GO:0042110", host.genes=gns.only.subset,
 
 
 summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
 ```
 
 
-0050863 - Regulation of T cell activation
+### 0050863 - Regulation of T cell activation
 ```{r}
 res <- go_targeted_diffex("GO:0050863", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
                            microbial.gene="butyrate.production.I")
 
 summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
 
 plot(gns.only.subset["CD4",], gmms.subset["butyrate production I",])
 ```
 
-0045066 - Regulatory T cell differentiation
+### 0045066 - Regulatory T cell differentiation
 ```{r}
 res <- go_targeted_diffex("GO:0045066", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
                            microbial.gene="butyrate.production.I")
 
 summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
 
+### 0046643 - Regulation of gamma delta T cell activation
+Not run because 0 genes from this are in our dataset
+```{r, eval=F}
+res <- go_targeted_diffex("GO:0046643", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="butyrate.production.I")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+
+# Mucin degradation
+
+## Tight junctions {.tabset}
+A whole lotta nothing...
+
+### GO:0070160 - tight junctions
+```{r}
+res <- go_targeted_diffex("GO:0070160", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="mucin.degradation")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+
+plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
+
+```
+
+### GO:0120192 - tight junction assembly
+```{r}
+res <- go_targeted_diffex("GO:0120192", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="mucin.degradation")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+### GO:0120193 - tight junction organization
+```{r}
+res <- go_targeted_diffex("GO:0120193", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="mucin.degradation")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
 ```
