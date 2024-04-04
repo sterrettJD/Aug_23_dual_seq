@@ -1,0 +1,123 @@
+---
+title: "WGCNA"
+author: "John Sterrett"
+date: "2024-04-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# These are required for WGCNA but the standard CRAN install.packages doesn't 
+# install them when installing WGCNA because they are bioc
+bioc.deps <- c("impute", "GO.db", "preprocessCore")
+for(package in bioc.deps){
+    if(!require(package, character.only=T, quietly=T)){
+        BiocManager::install(package)
+    }    
+}
+
+pacman::p_load("tidyverse",
+               "ggplot2",
+               "WGCNA")
+```
+
+# Read and clean data
+```{r}
+# microbe KOs
+gf.ko <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_genefamilies_ko_named.tsv",
+                        data.table=F)
+
+rownames(gf.ko) <- gf.ko$`# Gene Family`
+gf.ko$`# Gene Family` <- NULL
+gf.ko <- gf.ko %>% mutate_all(as.numeric)
+colnames(gf.ko) <- colnames(gf.ko) %>% 
+    gsub(pattern="_Abundance-RPKs", replacement="")
+
+gf.ko.tax.rows <- rownames(gf.ko) %>% grepl(pattern="\\|")
+gf.ko.notax <- gf.ko[!gf.ko.tax.rows,]
+gf.ko.tax <- gf.ko[gf.ko.tax.rows,]
+
+
+# Host genes
+gn <- data.table::fread("../seq.f0.0.r0.0.host/counts.txt", data.table=F)
+colnames(gn) <- colnames(gn) %>% gsub(pattern="seq.f0.0.r0.0.host/",
+                                      replacement="")
+colnames(gn) <- colnames(gn) %>% gsub(pattern=".bam",
+                                      replacement="")
+rownames(gn) <- gn$Geneid
+gn$Geneid <- NULL
+
+gns.only <- gn[!colnames(gn) %in% c("Chr", "Start", "End", "Strand", "Length")] %>%
+    as.matrix()
+
+# Metadata
+metadata <- data.table::fread("../16s-data/16S_meta.txt",
+                        data.table=F)
+
+# Samples before DM 33 were stored in PBS, all others (including LG)
+is.DM <- grepl("DM", metadata$Sample_ID)
+number <- str_split(metadata$Sample_ID, pattern="_") %>% 
+    lapply(function(x){x[2]}) %>% 
+    unlist() %>% 
+    as.numeric()
+
+metadata$storage_method <- rep(NA, nrow(metadata)) %>% as.character()
+metadata[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
+metadata[is.na(metadata$storage_method), "storage_method"] <- "RNALater"
+
+metadata[is.DM, "Participant"] <- paste0("DM_", number[is.DM])
+metadata[!is.DM, "Participant"] <- paste0("LG_", number[!is.DM])
+
+metadata %>% 
+    group_by(Participant) %>% 
+    summarise(MSM=dplyr::first(MSM)) %>%
+    select(MSM) %>%
+    as.data.frame() %>%
+    mutate(MSM=as.factor(MSM)) %>%
+    summary()
+
+get_timepoint <- function(sampleIDs) {
+  split_strings <- str_split(sampleIDs, "_")
+  # LG samples don't have a timepoint, so we'll just fill in "1" for them
+  timepoints <- sapply(split_strings, function(x) {
+    if (length(x) >= 3) {
+      return(as.numeric(x[3]))
+    } else {
+      return(1)
+    }
+  })
+  return(timepoints)
+}
+
+metadata$timepoint <- get_timepoint(metadata$Sample_ID)
+
+
+```
+
+# Subset data to create fully non-longitudinal dataset
+```{r}
+subset.metadata <- metadata %>% filter(storage_method=="RNALater",
+                                       timepoint==1)
+gf.ko.notax.subset <- gf.ko.notax[,subset.metadata$Sample_ID]
+
+gns.only.subset <- gns.only[,subset.metadata$Sample_ID]
+
+```
+
+# WGCNA on host
+
+# WGCNA on microbes
+
+## Assess corr matrix structure
+
+# SCNIC on microbes
+
+# Associations between host modules and microbes modules
+## WGCNA-WGCNA
+## WGCNA-SCNIC
+
+
+
+# WGCNA on all
+
