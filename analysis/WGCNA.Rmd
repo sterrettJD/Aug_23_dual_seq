@@ -107,8 +107,46 @@ gns.only.subset <- gns.only[,subset.metadata$Sample_ID]
 
 # Preprocess
 ## Host
+```{r}
+# Filter transcripts with fewer than 50 total reads across the dataset
+gns.only.subset <- gns.only.subset[rowSums(gns.only.subset) > 50,]
+# read into DESeq2 for normalization
+ds.dat <- DESeq2::DESeqDataSetFromMatrix(gns.only.subset,
+                               colData=subset.metadata,
+                               design=~1)
+dds <- DESeq2::DESeq(ds.dat)
+# Normalize data
+vsd <- DESeq2::getVarianceStabilizedData(dds)
+
+# remove any genes below the 25th percentile of variance
+rv_vsd <- matrixStats::rowVars(vsd)
+summary(rv_vsd)
+q25_vsd <- quantile(rv_vsd, .25)
+gns.only.subset.normalized <- vsd[rv_vsd > q25_vsd, ]
+print(paste("Host transcripts after filtering:", nrow(gns.only.subset.normalized)))
+```
 
 ## Microbes
+
+```{r}
+# apply a TSS normalization (this is transcripts per million)
+gf.ko.notax.subset.rel <- t(t(gf.ko.notax.subset)/colSums(gf.ko.notax.subset))
+tol <- 1e-4
+if(any(colSums(gf.ko.notax.subset.rel) < 1-tol | 
+       colSums(gf.ko.notax.subset.rel) > 1+tol)){
+    stop("Microbial KOs are not in relative abundances.")
+}
+# Filter transcripts seen less than 1 per 100000 transcripts
+threshold.microbe.genes <- ncol(gf.ko.notax.subset.rel)*1e-6
+gf.ko.notax.subset.rel.f <- gf.ko.notax.subset.rel[rowSums(gf.ko.notax.subset.rel) > threshold.microbe.genes,]
+
+rv_gf.ko.notax.subset.rel.f <- matrixStats::rowVars(gf.ko.notax.subset.rel.f)
+summary(rv_gf.ko.notax.subset.rel.f)
+q25_rv_gf.ko.notax.subset.rel.f <- quantile(rv_gf.ko.notax.subset.rel.f, .25)
+gf.ko.notax.subset.rel.f <- gf.ko.notax.subset.rel.f[rv_gf.ko.notax.subset.rel.f > q25_gf.ko.notax.subset.rel.f, ]
+print(paste("Microbial KOs after filtering:", nrow(gf.ko.notax.subset.rel.f)))
+```
+
 
 # WGCNA setup
 ```{r}
@@ -144,7 +182,6 @@ ggplot(sft_df, aes(x=Power, y=model_fit, label=Power)) +
   ylim(c(min(sft_df$model_fit), 1.05)) +
   xlab("Soft Threshold (power)") +
   ylab("Scale Free Topology Model Fit, signed R^2") +
-  ggtitle("Scale independence") +
   theme_bw()
 ```
 
