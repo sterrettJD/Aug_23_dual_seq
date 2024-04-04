@@ -166,12 +166,61 @@ gmms["butyrate production II",] %>% unlist() %>% hist()
 Differential expression analysis on the following GO terms only:
 0042110 - T cell activation
 0050863 - Regulation of T cell activation
-```{r}
-ensembl <- biomaRt::useMart("ensembl",dataset="hsapiens_gene_ensembl") #uses human ensembl annotations
-#gets gene symbol, transcript_id and go_id for all genes annotated with GO:0007507
-gene.data <- biomaRt::getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
-                            filters='go', values='GO:0042110', mart=ensembl)
+```{r function_setup}
 
-t.cell.activation.genes <- unique(gene.data$hgnc_symbol)
-t.cell.activation.data <- gns.only[t.cell.activation.genes,]
+get_go_term_human_genes <- function(go.term){
+    ensembl <- biomaRt::useMart("ensembl",dataset="hsapiens_gene_ensembl") #uses human ensembl annotations
+    #gets gene symbol, transcript_id and go_id for all genes annotated with GO:0007507
+    gene.data <- biomaRt::getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
+                                filters='go', values=go.term, mart=ensembl)
+    
+    targeted.genes <- unique(gene.data$hgnc_symbol)
+    return(targeted.genes)
+}
+
+go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.gene){
+    targeted.genes <- get_go_term_human_genes(go.term)
+    targeted.data <- host.genes[targeted.genes,]
+    
+    ds <- DESeq2::DESeqDataSetFromMatrix(
+                                 countData=targeted.data, 
+                                 colData=microbial.genes,
+                                 design=as.formula(paste0("~",microbial.gene)))
+    dds <- DESeq2::DESeq(ds)
+    
+    res <- DESeq2::results(dds, pAdjustMethod="fdr")
+    return(res)
+}
+```
+
+0042110 - T cell activation
+```{r}
+res <- go_targeted_diffex("GO:0042110", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="butyrate.production.I")
+
+
+summary(res$pvalue)
+```
+
+
+0050863 - Regulation of T cell activation
+```{r}
+res <- go_targeted_diffex("GO:0050863", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="butyrate.production.I")
+
+summary(res$pvalue)
+
+plot(gns.only.subset["CD4",], gmms.subset["butyrate production I",])
+```
+
+0045066 - Regulatory T cell differentiation
+```{r}
+res <- go_targeted_diffex("GO:0045066", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="butyrate.production.I")
+
+summary(res$pvalue)
+
 ```
