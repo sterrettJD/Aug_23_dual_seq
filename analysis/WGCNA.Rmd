@@ -105,7 +105,49 @@ gns.only.subset <- gns.only[,subset.metadata$Sample_ID]
 
 ```
 
+# Preprocess
+## Host
+
+## Microbes
+
+# WGCNA setup
+```{r}
+n.threads <- 4
+allowWGCNAThreads(n.threads)
+
+# ~16 GB RAM, per Langfelder's blog
+# https://peterlangfelder.com/2018/11/25/blockwise-network-analysis-of-large-data/
+max.block.size <- 20000
+```
+
 # WGCNA on host
+```{r}
+# Choose a set of soft-thresholding powers
+powers <- c(c(1:10), seq(from = 12, to = 20, by = 2))
+
+# Call the network topology analysis function
+sft <- pickSoftThreshold(
+  t(gns.only.subset),
+  blockSize = max.block.size,
+  powerVector = powers,
+  verbose = 5
+)
+
+sft_df <- data.frame(sft$fitIndices) %>%
+  dplyr::mutate(model_fit = -sign(slope) * SFT.R.sq)
+
+ggplot(sft_df, aes(x=Power, y=model_fit, label=Power)) +
+  geom_point() +
+  geom_text(nudge_y = 0.1) +
+  # Plot the WGCNA recommended R^2 cutoff
+  geom_hline(yintercept = 0.80, col = "red") +
+  ylim(c(min(sft_df$model_fit), 1.05)) +
+  xlab("Soft Threshold (power)") +
+  ylab("Scale Free Topology Model Fit, signed R^2") +
+  ggtitle("Scale independence") +
+  theme_bw()
+```
+
 
 # WGCNA on microbes
 
