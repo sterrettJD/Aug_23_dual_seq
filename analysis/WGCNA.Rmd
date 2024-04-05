@@ -143,7 +143,7 @@ gf.ko.notax.subset.rel.f <- gf.ko.notax.subset.rel[rowSums(gf.ko.notax.subset.re
 rv_gf.ko.notax.subset.rel.f <- matrixStats::rowVars(gf.ko.notax.subset.rel.f)
 summary(rv_gf.ko.notax.subset.rel.f)
 q25_rv_gf.ko.notax.subset.rel.f <- quantile(rv_gf.ko.notax.subset.rel.f, .25)
-gf.ko.notax.subset.rel.f <- gf.ko.notax.subset.rel.f[rv_gf.ko.notax.subset.rel.f > q25_gf.ko.notax.subset.rel.f, ]
+gf.ko.notax.subset.rel.f <- gf.ko.notax.subset.rel.f[rv_gf.ko.notax.subset.rel.f > q25_rv_gf.ko.notax.subset.rel.f, ]
 print(paste("Microbial KOs after filtering:", nrow(gf.ko.notax.subset.rel.f)))
 ```
 
@@ -165,7 +165,7 @@ powers <- c(c(1:10), seq(from = 12, to = 20, by = 2))
 
 # Call the network topology analysis function
 sft <- pickSoftThreshold(
-  t(gns.only.subset),
+  t(gns.only.subset.normalized),
   blockSize = max.block.size,
   powerVector = powers,
   verbose = 5
@@ -183,14 +183,97 @@ ggplot(sft_df, aes(x=Power, y=model_fit, label=Power)) +
   xlab("Soft Threshold (power)") +
   ylab("Scale Free Topology Model Fit, signed R^2") +
   theme_bw()
+
+chosen.power <- 20
+
+bwnet <- blockwiseModules(t(gns.only.subset.normalized),
+  maxBlockSize=max.block.size,
+  TOMType="signed",
+  power=chosen.power, # soft threshold for network construction
+  numericLabels=TRUE, # Use numbers instead of colors for module labels
+  randomSeed=1234
+)
+readr::write_rds(bwnet,
+  file = file.path("host_wgcna_results.RDS")
+)
+
+
+
+mergedColors <- labels2colors(bwnet$colors)
+
+plotDendroAndColors(
+  bwnet$dendrograms[[1]],
+  mergedColors[bwnet$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels=FALSE,
+  hang=0.03,
+  addGuide=TRUE,
+  guideHang=0.05 )
+
+plotEigengeneNetworks(bwnet$MEs, "Eigengene Adjacency Heatmap", marHeatmap = c(3,4,2,2))
+```
+
+# WGCNA on microbes
+```{r}
+extra.powers <- c(powers, seq(22, 50, by=2))
+
+# Call the network topology analysis function
+sft <- pickSoftThreshold(
+  t(gf.ko.notax.subset.rel.f),
+  blockSize=max.block.size,
+  powerVector=extra.powers,
+  verbose=5
+)
+
+sft_df <- data.frame(sft$fitIndices) %>%
+  dplyr::mutate(model_fit = -sign(slope) * SFT.R.sq)
+
+ggplot(sft_df, aes(x=Power, y=model_fit, label=Power)) +
+  geom_point() +
+  geom_text(nudge_y = 0.1) +
+  # Plot the WGCNA recommended R^2 cutoff
+  geom_hline(yintercept = 0.80, col = "red") +
+  ylim(c(min(sft_df$model_fit), 1.05)) +
+  xlab("Soft Threshold (power)") +
+  ylab("Scale Free Topology Model Fit, signed R^2") +
+  theme_bw()
+
+chosen.power <- 30
+
+bwnet.microbes <- blockwiseModules(t(gf.ko.notax.subset.rel.f),
+  maxBlockSize=max.block.size,
+  TOMType="signed",
+  power=chosen.power, # soft threshold for network construction
+  numericLabels=TRUE, # Use numbers instead of colors for module labels
+  randomSeed=1234
+)
+
+readr::write_rds(bwnet.microbes,
+  file = file.path("microbes_wgcna_results.RDS")
+)
+
+
+mergedColors <- labels2colors(bwnet.microbes$colors)
+
+plotDendroAndColors(
+  bwnet.microbes$dendrograms[[1]],
+  mergedColors[bwnet.microbes$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels=FALSE,
+  hang=0.03,
+  addGuide=TRUE,
+  guideHang=0.05)
+
+plotEigengeneNetworks(bwnet.microbes$MEs, "Eigengene Adjacency Heatmap", marHeatmap = c(3,4,2,2))
 ```
 
 
-# WGCNA on microbes
-
-## Assess corr matrix structure
-
 # SCNIC on microbes
+```{r}
+
+
+```
+
 
 # Associations between host modules and microbes modules
 ## WGCNA-WGCNA
