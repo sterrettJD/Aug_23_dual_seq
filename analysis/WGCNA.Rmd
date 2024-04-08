@@ -19,7 +19,8 @@ for(package in bioc.deps){
 
 pacman::p_load("tidyverse",
                "ggplot2",
-               "WGCNA")
+               "WGCNA",
+               "HoMiStats")
 ```
 
 # Read and clean data
@@ -279,20 +280,35 @@ Prep
 
 ```{r}
 gf.ko.notax.subset.rel.f.biom <- biomformat::make_biom(gf.ko.notax.subset.rel.f)
-biomformat::write_biom(gf.ko.notax.subset.rel.f.biom, 
+if(!file.exists("gf.ko.notax.subset.rel.f.biom")){
+    biomformat::write_biom(gf.ko.notax.subset.rel.f.biom, 
                        "gf.ko.notax.subset.rel.f.biom")
+}
 ```
 
 ```{bash, eval=F}
 conda activate SCNIC
 SCNIC_analysis.py within -i gf.ko.notax.subset.rel.f.biom -o SCNIC_within_output/ -m sparcc
 SCNIC_analysis.py modules -i SCNIC_within_output/correls.txt -o SCNIC_modules_output/ --min_r .35 --table gf.ko.notax.subset.rel.f.biom
-
 ```
 
 
 # Associations between host modules and microbes modules
 ## WGCNA-WGCNA
+```{r}
+bwnet.microbes.df <- bwnet.microbes$MEs
+colnames(bwnet.microbes.df) <- paste0("microbes_", colnames(bwnet.microbes.df))
+
+bwnet.df <- bwnet$MEs
+colnames(bwnet.df) <- paste0("host_", colnames(bwnet.df))
+
+homicorr.res.w.w <- HoMiStats::run_HoMiCorr(mtx=bwnet.microbes.df, host=bwnet$MEs, 
+                                            reg.method="lm")
+
+homicorr.res.w.w[homicorr.res.w.w$q < 0.05,]
+
+```
+
 ## WGCNA-SCNIC
 
 
