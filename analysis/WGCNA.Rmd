@@ -38,6 +38,11 @@ gf.ko.tax.rows <- rownames(gf.ko) %>% grepl(pattern="\\|")
 gf.ko.notax <- gf.ko[!gf.ko.tax.rows,]
 gf.ko.tax <- gf.ko[gf.ko.tax.rows,]
 
+# filter unmapped and ungrouped reads out
+gf.ko.notax <- gf.ko.notax[!grepl(x=rownames(gf.ko.notax), 
+                      pattern="UNMAPPED|UNGROUPED", perl=T),]
+gf.ko.tax <- gf.ko.tax[!grepl(x=rownames(gf.ko.tax), 
+                      pattern="UNMAPPED|UNGROUPED", perl=T),]
 
 # Host genes
 gn <- data.table::fread("../seq.f0.0.r0.0.host/counts.txt", data.table=F)
@@ -269,8 +274,19 @@ plotEigengeneNetworks(bwnet.microbes$MEs, "Eigengene Adjacency Heatmap", marHeat
 
 
 # SCNIC on microbes
-```{r}
 
+Prep
+
+```{r}
+gf.ko.notax.subset.rel.f.biom <- biomformat::make_biom(gf.ko.notax.subset.rel.f)
+biomformat::write_biom(gf.ko.notax.subset.rel.f.biom, 
+                       "gf.ko.notax.subset.rel.f.biom")
+```
+
+```{bash, eval=F}
+conda activate SCNIC
+SCNIC_analysis.py within -i gf.ko.notax.subset.rel.f.biom -o SCNIC_within_output/ -m sparcc
+SCNIC_analysis.py modules -i SCNIC_within_output/correls.txt -o SCNIC_modules_output/ --min_r .35 --table gf.ko.notax.subset.rel.f.biom
 
 ```
 
