@@ -286,10 +286,24 @@ if(!file.exists("gf.ko.notax.subset.rel.f.biom")){
 }
 ```
 
+
+Setting min_r for the SCNIC_modules - need to pick a low value because the r 
+values are quite low (max is .21)
 ```{bash, eval=F}
 conda activate SCNIC
 SCNIC_analysis.py within -i gf.ko.notax.subset.rel.f.biom -o SCNIC_within_output/ -m sparcc
-SCNIC_analysis.py modules -i SCNIC_within_output/correls.txt -o SCNIC_modules_output/ --min_r .35 --table gf.ko.notax.subset.rel.f.biom
+SCNIC_analysis.py modules -i SCNIC_within_output/correls.txt -o SCNIC_modules_output/ --min_r .1 --table gf.ko.notax.subset.rel.f.biom
+```
+
+```{r}
+scnic.biom <- biomformat::read_biom("SCNIC_modules_output/collapsed.biom") 
+scnic.table <- biomformat::biom_data(scnic.biom) %>% as.matrix() %>% as.data.frame()
+
+data.table::fread("SCNIC_within_output/correls.txt") %>% 
+    select("r") %>% 
+    hist()
+
+
 ```
 
 
@@ -305,12 +319,34 @@ colnames(bwnet.df) <- paste0("host_", colnames(bwnet.df))
 homicorr.res.w.w <- HoMiStats::run_HoMiCorr(mtx=bwnet.microbes.df, host=bwnet$MEs, 
                                             reg.method="lm")
 
-homicorr.res.w.w[homicorr.res.w.w$q < 0.05,]
+homicorr.res.w.w %>%
+    filter(q < 0.05,
+           (grepl(pattern="microbes", x=homicorr.res.w.w$feature) + 
+            grepl(pattern="microbes", x=homicorr.res.w.w$term))==1) %>%
+    arrange(estimate) %>%
+    knitr::kable()
+
+
+bwnet.modules <- data.frame(name=names(bwnet$colors), 
+                            module=unname(bwnet$colors))
+write.csv(bwnet.modules, "host_wgcna_module_contents.csv")
+
+bwnet.microbes.modules <- data.frame(name=names(bwnet.microbes$colors), 
+                                     module=unname(bwnet.microbes$colors))
+write.csv(bwnet.microbes.modules, "microbe_wgcna_module_contents.csv") 
+
 
 ```
 
 ## WGCNA-SCNIC
+```{r}
 
+homicorr.res.w.w <- HoMiStats::run_HoMiCorr(mtx=scnic.table, host=bwnet$MEs, 
+                                            reg.method="zibr", 
+                                            zero_prop_from_formula=TRUE)
+
+
+```
 
 
 # WGCNA on all
