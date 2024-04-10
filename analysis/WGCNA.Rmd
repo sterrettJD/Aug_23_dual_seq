@@ -273,6 +273,65 @@ plotDendroAndColors(
 plotEigengeneNetworks(bwnet.microbes$MEs, "Eigengene Adjacency Heatmap", marHeatmap = c(3,4,2,2))
 ```
 
+# WGCNA on all
+```{r}
+extra.powers <- c(powers, seq(22, 50, by=2))
+
+both.datasets <- merge(t(gf.ko.notax.subset.rel.f), t(gns.only.subset.normalized), by="row.names")
+rownames(both.datasets) <- both.datasets$Row.names
+both.datasets$Row.names <- NULL
+# Call the network topology analysis function
+sft <- pickSoftThreshold(
+  both.datasets,
+  blockSize=max.block.size,
+  powerVector=extra.powers,
+  verbose=5
+)
+
+sft_df <- data.frame(sft$fitIndices) %>%
+  dplyr::mutate(model_fit = -sign(slope) * SFT.R.sq)
+
+ggplot(sft_df, aes(x=Power, y=model_fit, label=Power)) +
+  geom_point() +
+  geom_text(nudge_y = 0.05) +
+  # Plot the WGCNA recommended R^2 cutoff
+  geom_hline(yintercept = 0.80, col = "red") +
+  ylim(c(min(sft_df$model_fit), 1.05)) +
+  xlab("Soft Threshold (power)") +
+  ylab("Scale Free Topology Model Fit, signed R^2") +
+  theme_bw()
+
+chosen.power <- 24
+
+bwnet.all <- blockwiseModules(both.datasets,
+  maxBlockSize=max.block.size,
+  TOMType="signed",
+  power=chosen.power, # soft threshold for network construction
+  numericLabels=TRUE, # Use numbers instead of colors for module labels
+  randomSeed=1234
+)
+
+readr::write_rds(bwnet.all,
+  file = file.path("all_wgcna_results.RDS")
+)
+
+
+mergedColors <- labels2colors(bwnet.all$colors)
+
+plotDendroAndColors(
+  bwnet.all$dendrograms[[1]],
+  mergedColors[bwnet.all$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels=FALSE,
+  hang=0.03,
+  addGuide=TRUE,
+  guideHang=0.05)
+
+plotEigengeneNetworks(bwnet.all$MEs, "Eigengene Adjacency Heatmap", marHeatmap = c(3,4,2,2))
+
+
+```
+
 
 # SCNIC on microbes
 
@@ -297,7 +356,10 @@ SCNIC_analysis.py modules -i SCNIC_within_output/correls.txt -o SCNIC_modules_ou
 
 ```{r}
 scnic.biom <- biomformat::read_biom("SCNIC_modules_output/collapsed.biom") 
-scnic.table <- biomformat::biom_data(scnic.biom) %>% as.matrix() %>% as.data.frame()
+scnic.table <- biomformat::biom_data(scnic.biom) %>% 
+    as.matrix() %>% 
+    as.data.frame() %>%
+    t()
 
 data.table::fread("SCNIC_within_output/correls.txt") %>% 
     select("r") %>% 
@@ -329,10 +391,12 @@ homicorr.res.w.w %>%
 
 bwnet.modules <- data.frame(name=names(bwnet$colors), 
                             module=unname(bwnet$colors))
+bwnet.modules <- bwnet.modules[order(bwnet.modules$module),]
 write.csv(bwnet.modules, "host_wgcna_module_contents.csv")
 
 bwnet.microbes.modules <- data.frame(name=names(bwnet.microbes$colors), 
                                      module=unname(bwnet.microbes$colors))
+bwnet.microbes.modules <- bwnet.microbes.modules[order(bwnet.microbes.modules$module),]
 write.csv(bwnet.microbes.modules, "microbe_wgcna_module_contents.csv") 
 
 
@@ -341,13 +405,28 @@ write.csv(bwnet.microbes.modules, "microbe_wgcna_module_contents.csv")
 ## WGCNA-SCNIC
 ```{r}
 
-homicorr.res.w.w <- HoMiStats::run_HoMiCorr(mtx=scnic.table, host=bwnet$MEs, 
-                                            reg.method="zibr", 
-                                            zero_prop_from_formula=TRUE)
+scnic.table.clean <- janitor::clean_names(scnic.table)
+rownames(scnic.table.clean) <- rownames(scnic.table)
 
+homicorr.res.s.w <- HoMiStats::run_HoMiCorr(mtx=scnic.table.clean, host=bwnet.df, 
+                                            reg.method="lm",
+                                            zero_prop_from_formula=TRUE,
+                                            ncores=32)
 
+homicorr.res.s.w %>%
+    filter(q < 0.05,
+           (grepl(pattern="host", x=homicorr.res.s.w$feature) + 
+            grepl(pattern="host", x=homicorr.res.s.w$term))==1
+           ) %>%
+    arrange(estimate) %>%
+    knitr::kable()
 ```
 
 
 # WGCNA on all
-
+```{r}
+bwnet.modules.all <- data.frame(name=names(bwnet.all$colors), 
+                            module=unname(bwnet.all$colors))
+bwnet.modules.all <- bwnet.modules.all[order(bwnet.modules.all$module),]
+write.csv(bwnet.modules.all, "all_wgcna_module_contents.csv")
+```
