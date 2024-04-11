@@ -128,7 +128,7 @@ metadata$timepoint <- get_timepoint(metadata$Sample_ID)
 ```{r}
 subset.metadata <- metadata %>% filter(storage_method=="RNALater",
                                        timepoint==1)
-gf.ko.tax.subset <- gf.ko.tax[,subset.metadata$Sample_ID]
+gf.ko.notax.subset <- gf.ko.notax[,subset.metadata$Sample_ID]
 gmms.subset <- gmms[,subset.metadata$Sample_ID]
 
 gns.only.subset <- gns.only[,subset.metadata$Sample_ID]
@@ -163,10 +163,8 @@ gmms["butyrate production II",] %>% unlist() %>% hist()
 
 ```
 
-## T cells {.tabset}
-Differential expression analysis on the targeted GO terms. No real results
 
-### Setup
+## Setup
 ```{r function_setup}
 
 get_go_term_human_genes <- function(go.term){
@@ -185,10 +183,7 @@ go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.g
 
     # filter empty strings
     targeted.genes <- targeted.genes[nzchar(targeted.genes)]
-   
-    if(verbose){
-        print(targeted.genes)
-    }
+  
     
     targeted.data <- host.genes[targeted.genes,]
     if(verbose){
@@ -208,6 +203,11 @@ go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.g
     return(res)
 }
 ```
+
+## T cells {.tabset}
+Differential expression analysis on the targeted GO terms. No real results
+
+
 
 ### 0042110 - T cell activation
 ```{r}
@@ -279,7 +279,6 @@ res %>% as.data.frame() %>%
     dplyr::filter(pvalue < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 
-
 ```
 
 ### All Muc genes
@@ -287,6 +286,19 @@ res %>% as.data.frame() %>%
 ```{r}
 muc.genes <- rownames(gns.only.subset)[grepl(pattern="Muc", x=rownames(gns.only.subset), 
                                 ignore.case=T)]
+
+muc.ds <- DESeq2::DESeqDataSetFromMatrix(
+                                 countData=gns.only.subset[muc.genes,], 
+                                 colData=data.frame(t(gmms.subset)),
+                                 design=as.formula(paste0("~", "mucin.degradation")))
+muc.dds <- DESeq2::DESeq(muc.ds)
+    
+res <- DESeq2::results(muc.dds, pAdjustMethod="fdr")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
 
 ```
 
@@ -326,6 +338,181 @@ res %>% as.data.frame() %>%
 res <- go_targeted_diffex("GO:0120193", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
                            microbial.gene="mucin.degradation")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+
+# Analysis at KO level within each GMM
+
+## Setup
+
+## Butyrate {.tabset}
+
+```{r}
+gmm.kos.df <- get_GMM_matrix()
+gf.ko.notax.subset.clean <- gf.ko.notax.subset
+rownames(gf.ko.notax.subset.clean) <- janitor::make_clean_names(rownames(gf.ko.notax.subset.clean))
+
+targeted_for_each_KO <- function(GMM, GMMs.kos.df, 
+                                 go.term, host.genes,
+                                 microbial.kos){
+    module.kos <- GMMs.kos.df[GMMs.kos.df$Module==GMM, "KEGG"]
+    
+    mtx.features <- c()
+    for(ko in module.kos){
+        ko.feature <- colnames(microbial.kos)[grepl(pattern=ko, x=colnames(microbial.kos),
+                                                    ignore.case=TRUE)]
+        mtx.features <- c(mtx.features, ko.feature)
+    }
+    
+    results <- data.frame(row.names=c("baseMean", "log2FoldChange", "lfcSE", 
+                                      "stat", "pvalue", "padj"))    
+    # This is kinda slow because it still relies on pulling the GO terms each time
+    for(feature in mtx.features){
+        res <- go_targeted_diffex(go.term, host.genes=gns.only.subset, 
+                               microbial.genes=microbial.kos,
+                               microbial.gene=feature)    
+        res$term <- feature
+        results <- rbind(results, as.data.frame(res))
+        
+    }
+    results$padj <- p.adjust(results$pvalue)
+    return(results)
+}
+
+```
+
+### 0042110 - T cell activation
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0042110", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(padj < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+
+### 0050863 - Regulation of T cell activation
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0050863", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+
+plot(gns.only.subset["CD4",], gmms.subset["butyrate production I",])
+```
+
+### 0045066 - Regulatory T cell differentiation
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0045066", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+### 0046643 - Regulation of gamma delta T cell activation
+Not run because 0 genes from this are in our dataset
+```{r, eval=F}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0046643", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+
+# Mucin degradation
+
+## Mucus secretion
+
+### 0070701
+
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0070701", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+
+```
+
+### All Muc genes
+
+```{r}
+muc.genes <- rownames(gns.only.subset)[grepl(pattern="Muc", x=rownames(gns.only.subset), 
+                                ignore.case=T)]
+
+muc.ds <- DESeq2::DESeqDataSetFromMatrix(
+                                 countData=gns.only.subset[muc.genes,], 
+                                 colData=data.frame(t(gmms.subset)),
+                                 design=as.formula(paste0("~", "mucin.degradation")))
+muc.dds <- DESeq2::DESeq(muc.ds)
+    
+res <- DESeq2::results(muc.dds, pAdjustMethod="fdr")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+
+```
+
+
+## Tight junctions {.tabset}
+
+### 0070160-tight junctions
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0070160", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+
+plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
+
+```
+
+### 0120192-tight junction assembly
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0120192", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+```
+
+### 0120193-tight junction organization
+```{r}
+res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+                     "GO:0120193", host.genes=gns.only.subset, 
+                      microbial.kos=t(gf.ko.notax.subset.clean))
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
