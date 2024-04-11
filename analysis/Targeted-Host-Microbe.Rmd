@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 pacman::p_load("tidyverse",
                "ggplot2",
-               "HoMiStats")
+               "HoMiStats",
+               "org.Hs.eg.db",
+               "GO.db")
 # set ggplot theme
 theme_set(theme_bw())
 ```
@@ -168,12 +170,13 @@ Differential expression analysis on the targeted GO terms. No real results
 ```{r function_setup}
 
 get_go_term_human_genes <- function(go.term){
-    ensembl <- biomaRt::useMart("ensembl",dataset="hsapiens_gene_ensembl") #uses human ensembl annotations
-    #gets gene symbol, transcript_id and go_id for all genes annotated with GO:0007507
-    gene.data <- biomaRt::getBM(attributes=c('hgnc_symbol', 'ensembl_transcript_id', 'go_id'),
-                                filters='go', values=go.term, mart=ensembl)
+    gene.data <- AnnotationDbi::select(org.Hs.eg.db, 
+                          keys=c(go.term), 
+                          columns = c('SYMBOL'), 
+                          keytype = "GOALL") #uses human ensembl annotations
+    #gets gene symbol, transcript_id and go_id for all genes annotated with the go term
     
-    targeted.genes <- unique(gene.data$hgnc_symbol)
+    targeted.genes <- unique(gene.data$SYMBOL)
     return(targeted.genes)
 }
 
@@ -276,7 +279,6 @@ res %>% as.data.frame() %>%
     dplyr::filter(pvalue < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 
-#plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
 
 ```
 
