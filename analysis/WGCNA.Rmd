@@ -156,7 +156,7 @@ print(paste("Microbial KOs after filtering:", nrow(gf.ko.notax.subset.rel.f)))
 
 # WGCNA setup
 ```{r}
-n.threads <- 4
+n.threads <- 16
 allowWGCNAThreads(n.threads)
 
 # ~16 GB RAM, per Langfelder's blog
@@ -165,7 +165,7 @@ max.block.size <- 20000
 ```
 
 # WGCNA on host
-```{r}
+```{r wgcna_host}
 # Choose a set of soft-thresholding powers
 powers <- c(c(1:10), seq(from = 12, to = 20, by = 2))
 
@@ -220,7 +220,7 @@ plotEigengeneNetworks(bwnet$MEs, "Eigengene Adjacency Heatmap", marHeatmap = c(3
 ```
 
 # WGCNA on microbes
-```{r}
+```{r wgcna_microbes}
 extra.powers <- c(powers, seq(22, 50, by=2))
 
 # Call the network topology analysis function
@@ -274,13 +274,14 @@ plotEigengeneNetworks(bwnet.microbes$MEs, "Eigengene Adjacency Heatmap", marHeat
 ```
 
 # WGCNA on all
-```{r}
+```{r wgcna_all}
 extra.powers <- c(powers, seq(22, 50, by=2))
 
 both.datasets <- merge(t(gf.ko.notax.subset.rel.f), t(gns.only.subset.normalized), by="row.names")
 rownames(both.datasets) <- both.datasets$Row.names
 both.datasets$Row.names <- NULL
 # Call the network topology analysis function
+
 sft <- pickSoftThreshold(
   both.datasets,
   blockSize=max.block.size,
@@ -403,7 +404,7 @@ write.csv(bwnet.microbes.modules, "microbe_wgcna_module_contents.csv")
 ```
 
 ## WGCNA-SCNIC
-```{r}
+```{r, eval=FALSE}
 
 scnic.table.clean <- janitor::clean_names(scnic.table)
 rownames(scnic.table.clean) <- rownames(scnic.table)
