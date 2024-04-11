@@ -151,11 +151,10 @@ Individual genes involved directly in butyrate synthesis are expressed at very l
 buk <- rownames(gf.ko.notax) %>% grep(pattern="K00929")
 atoD <- rownames(gf.ko.notax) %>% grep(pattern="K01034")
 
-gf.ko.notax[c(buk, atoD),] %>% t() %>% summary()
+gf.ko.notax[c(buk, atoD),] %>% t() %>% summary() %>% knitr::kable()
 ```
 
-At the gut metabolic module level, transcripts for butyrate production are detectable. However, these two pathways are identical (the overlapping KO is K00248, 	
-butyryl-CoA dehydrogenase, which takes us farther from butyrate...)
+At the gut metabolic module level, transcripts for butyrate production are consistently detected across samples. However, these two pathways are identical (the overlapping KO is K00248, butyryl-CoA dehydrogenase, which takes us farther from butyrate...)
 ```{r}
 gmms["butyrate production I",] %>% unlist() %>% hist()
 gmms["butyrate production II",] %>% unlist() %>% hist()
@@ -180,6 +179,7 @@ get_go_term_human_genes <- function(go.term){
 
 go_targeted_diffex <- function(go.term, host.genes, microbial.genes, microbial.gene, verbose=T){
     targeted.genes <- get_go_term_human_genes(go.term)
+
     # filter empty strings
     targeted.genes <- targeted.genes[nzchar(targeted.genes)]
    
@@ -262,10 +262,37 @@ res %>% as.data.frame() %>%
 
 # Mucin degradation
 
+## Mucus secretion
+
+### 0070701
+
+```{r}
+res <- go_targeted_diffex("GO:0070701", host.genes=gns.only.subset, 
+                           microbial.genes=data.frame(t(gmms.subset)),
+                           microbial.gene="mucin.degradation")
+
+summary(res$pvalue)
+res %>% as.data.frame() %>% 
+    dplyr::filter(pvalue < 0.05) %>% 
+    knitr::kable(caption="Significant genes")
+
+#plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
+
+```
+
+### All Muc genes
+
+```{r}
+muc.genes <- rownames(gns.only.subset)[grepl(pattern="Muc", x=rownames(gns.only.subset), 
+                                ignore.case=T)]
+
+```
+
+
 ## Tight junctions {.tabset}
 A whole lotta nothing...
 
-### GO:0070160 - tight junctions
+### 0070160-tight junctions
 ```{r}
 res <- go_targeted_diffex("GO:0070160", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
@@ -280,7 +307,7 @@ plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
 
 ```
 
-### GO:0120192 - tight junction assembly
+### 0120192-tight junction assembly
 ```{r}
 res <- go_targeted_diffex("GO:0120192", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
@@ -292,7 +319,7 @@ res %>% as.data.frame() %>%
     knitr::kable(caption="Significant genes")
 ```
 
-### GO:0120193 - tight junction organization
+### 0120193-tight junction organization
 ```{r}
 res <- go_targeted_diffex("GO:0120193", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
