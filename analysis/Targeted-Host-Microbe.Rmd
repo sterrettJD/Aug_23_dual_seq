@@ -446,7 +446,7 @@ res %>% as.data.frame() %>%
 ### 0070701
 
 ```{r}
-res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
                      "GO:0070701", host.genes=gns.only.subset, 
                       microbial.kos=t(gf.ko.notax.subset.clean))
 
@@ -457,33 +457,11 @@ res %>% as.data.frame() %>%
 
 ```
 
-### All Muc genes
-
-```{r}
-muc.genes <- rownames(gns.only.subset)[grepl(pattern="Muc", x=rownames(gns.only.subset), 
-                                ignore.case=T)]
-
-muc.ds <- DESeq2::DESeqDataSetFromMatrix(
-                                 countData=gns.only.subset[muc.genes,], 
-                                 colData=data.frame(t(gmms.subset)),
-                                 design=as.formula(paste0("~", "mucin.degradation")))
-muc.dds <- DESeq2::DESeq(muc.ds)
-    
-res <- DESeq2::results(muc.dds, pAdjustMethod="fdr")
-
-summary(res$pvalue)
-res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
-    knitr::kable(caption="Significant genes")
-
-```
-
-
 ## Tight junctions {.tabset}
 
 ### 0070160-tight junctions
 ```{r}
-res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
                      "GO:0070160", host.genes=gns.only.subset, 
                       microbial.kos=t(gf.ko.notax.subset.clean))
 
@@ -498,7 +476,7 @@ plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
 
 ### 0120192-tight junction assembly
 ```{r}
-res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
                      "GO:0120192", host.genes=gns.only.subset, 
                       microbial.kos=t(gf.ko.notax.subset.clean))
 
@@ -510,7 +488,7 @@ res %>% as.data.frame() %>%
 
 ### 0120193-tight junction organization
 ```{r}
-res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
+res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
                      "GO:0120193", host.genes=gns.only.subset, 
                       microbial.kos=t(gf.ko.notax.subset.clean))
 
