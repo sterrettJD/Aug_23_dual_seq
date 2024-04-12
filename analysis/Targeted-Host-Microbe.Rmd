@@ -103,7 +103,7 @@ metadata[!is.DM, "Participant"] <- paste0("LG_", number[!is.DM])
 metadata %>% 
     group_by(Participant) %>% 
     summarise(MSM=dplyr::first(MSM)) %>%
-    select(MSM) %>%
+    dplyr::select(MSM) %>%
     as.data.frame() %>%
     mutate(MSM=as.factor(MSM)) %>%
     summary()
@@ -407,10 +407,8 @@ res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
-
-plot(gns.only.subset["CD4",], gmms.subset["butyrate production I",])
 ```
 
 ### 0045066 - Regulatory T cell differentiation
@@ -421,20 +419,20 @@ res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 ```
 
 ### 0046643 - Regulation of gamma delta T cell activation
-Not run because 0 genes from this are in our dataset
-```{r, eval=F}
+
+```{r, eval=T}
 res <- targeted_for_each_KO("butyrate production I", gmm.kos.df,
                      "GO:0046643", host.genes=gns.only.subset, 
                       microbial.kos=t(gf.ko.notax.subset.clean))
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 ```
 
@@ -452,7 +450,7 @@ res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 
 ```
@@ -467,10 +465,8 @@ res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
-
-plot(gns.only.subset["CLDN18",], gmms.subset["mucin degradation",])
 
 ```
 
@@ -482,7 +478,7 @@ res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 ```
 
@@ -494,6 +490,6 @@ res <- targeted_for_each_KO("mucin degradation", gmm.kos.df,
 
 summary(res$pvalue)
 res %>% as.data.frame() %>% 
-    dplyr::filter(pvalue < 0.05) %>% 
+    dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
 ```
