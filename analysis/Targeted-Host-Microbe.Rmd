@@ -14,7 +14,7 @@ pacman::p_load("tidyverse",
                "org.Hs.eg.db",
                "GO.db")
 # set ggplot theme
-theme_set(theme_bw())
+theme_set()
 ```
 
 # Load Data
@@ -210,7 +210,7 @@ Differential expression analysis on the targeted GO terms. No real results
 
 
 ### 0042110 - T cell activation
-```{r}
+```{r, message=F}
 res <- go_targeted_diffex("GO:0042110", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
                            microbial.gene="butyrate.production.I")
@@ -251,7 +251,7 @@ res %>% as.data.frame() %>%
 
 ### 0046643 - Regulation of gamma delta T cell activation
 Not run because 0 genes from this are in our dataset
-```{r, eval=F}
+```{r}
 res <- go_targeted_diffex("GO:0046643", host.genes=gns.only.subset, 
                            microbial.genes=data.frame(t(gmms.subset)),
                            microbial.gene="butyrate.production.I")
@@ -492,4 +492,107 @@ summary(res$pvalue)
 res %>% as.data.frame() %>% 
     dplyr::filter(padj < 0.05) %>% 
     knitr::kable(caption="Significant genes")
+```
+
+# Plotting results
+## Butyrate - T cell
+```{r}
+library(patchwork)
+plotdata <- dplyr::bind_rows(gf.ko.notax.subset.clean, 
+                             as.data.frame(gns.only.subset)) %>%
+    t()
+
+a <- ggplot(data=plotdata, mapping=aes(x=k00248_butyryl_co_a_dehydrogenase_ec_1_3_8_1,
+                                  y=HHLA2)) +
+    geom_point(size=8) +
+    geom_smooth(method="lm", linewidth=3) +
+    xlab("Butyryl-CoA Dehydrogenase (microbial TPM)") +
+    ylab("HHLA2 (host TPM)") +
+    ylim(c(0,14000))
+
+b <- ggplot(data=plotdata, mapping=aes(x=k00248_butyryl_co_a_dehydrogenase_ec_1_3_8_1,
+                                  y=LFNG)) +
+    geom_point(size=8) +
+    geom_smooth(method="lm", linewidth=3) +
+    xlab("") +
+    ylab("LFNG (host TPM)") +
+    ylim(c(0,4000))
+
+plot1 <- a + b +
+    plot_layout(nrow=1, widths=c(1, 1)) &
+    theme(plot.margin=unit(c(.2,.2,.2,.2), "cm"),
+          panel.background = element_rect(fill='transparent'), #transparent panel bg
+        plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+        legend.background = element_rect(fill='transparent'), #transparent legend bg
+        legend.box.background = element_rect(fill='transparent'),
+        axis.title.y = element_text(size=26),
+        axis.title.x = element_text(size=24, hjust=0))
+plot1
+
+ggsave("Butyrate_tcells.png", plot1, height=8, width=8, bg="transparent")
+
+
+```
+
+## Mucus
+```{r}
+
+a <- ggplot(data=plotdata, mapping=aes(x=k05970_sialate_o_acetylesterase,
+                                  y=MUC5AC)) +
+    geom_point(size=8) +
+    geom_smooth(method="lm", linewidth=3) +
+    xlab("") +
+    ylab("MUC5AC (host TPM)")  +
+    ylim(c(0,700)) + 
+    theme(
+        panel.background = element_rect(fill='transparent'), #transparent panel bg
+        plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+        legend.background = element_rect(fill='transparent'), #transparent legend bg
+        legend.box.background = element_rect(fill='transparent') #transparent legend panel
+      )
+
+b <- ggplot(data=plotdata, mapping=aes(x=k05970_sialate_o_acetylesterase,
+                                       y=AOC1)) +
+    geom_point(size=8) +
+    geom_smooth(method="lm", linewidth=3) +
+    xlab("Sialate O-acetylesterase (microbial TPM)") +
+    ylab("AOC1 (host TPM)") +
+    ylim(c(0,17000)) + 
+    theme(
+        panel.background = element_rect(fill='transparent'), #transparent panel bg
+        plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+        legend.background = element_rect(fill='transparent'), #transparent legend bg
+        legend.box.background = element_rect(fill='transparent') #transparent legend panel
+      )
+
+
+c <- ggplot(data=plotdata, mapping=aes(x=k05970_sialate_o_acetylesterase,
+                                       y=STRN)) +
+    geom_point(size=8) +
+    geom_smooth(method="lm", linewidth=3) +
+    xlab("") +
+    ylab("STRN (host TPM)")  +
+    ylim(c(0,10000)) + 
+    theme(
+        panel.background = element_rect(fill='transparent'), #transparent panel bg
+        plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+        legend.background = element_rect(fill='transparent'), #transparent legend bg
+        legend.box.background = element_rect(fill='transparent') #transparent legend panel
+      )
+
+
+plot2 <- a + b + c +
+    plot_layout(nrow=1, widths=c(1, 1, 1)) &
+    theme(plot.margin=unit(c(.2,.2,.2,.2), "cm"),
+          panel.background = element_rect(fill='transparent'), #transparent panel bg
+        plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+        legend.background = element_rect(fill='transparent'), #transparent legend bg
+        legend.box.background = element_rect(fill='transparent'),
+        axis.title.y = element_text(size=26),
+        axis.title.x = element_text(size=26))
+plot2
+
+ggsave("Mucin_TJ_sialate.png", plot2, height=8, width=12, bg="transparent")
+
+
 ```
