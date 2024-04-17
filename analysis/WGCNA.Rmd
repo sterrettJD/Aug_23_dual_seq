@@ -17,6 +17,11 @@ for(package in bioc.deps){
     }    
 }
 
+
+if(!require("ggraph", character.only=T, quietly=T)){
+    devtools::install_github("thomasp85/ggraph")
+}
+
 pacman::p_load("tidyverse",
                "ggplot2",
                "WGCNA",
@@ -389,7 +394,6 @@ homicorr.res.w.w %>%
     arrange(estimate) %>%
     knitr::kable()
 
-
 bwnet.modules <- data.frame(name=names(bwnet$colors), 
                             module=unname(bwnet$colors))
 bwnet.modules <- bwnet.modules[order(bwnet.modules$module),]
@@ -400,7 +404,86 @@ bwnet.microbes.modules <- data.frame(name=names(bwnet.microbes$colors),
 bwnet.microbes.modules <- bwnet.microbes.modules[order(bwnet.microbes.modules$module),]
 write.csv(bwnet.microbes.modules, "microbe_wgcna_module_contents.csv") 
 
+```
 
+Network visualization of WGCNA-WGCNA modules
+```{r}
+old.par <- par(bg=NA)
+graph.data.w.w <- homicorr.res.w.w %>%
+    filter(q < 0.05) %>%
+    dplyr::select(c(term, feature, statistic))
+
+node.names <- unique(c(graph.data.w.w$term, graph.data.w.w$feature))
+node.origin <- grepl("microbes", x=node.names)
+node.data <- data.frame(node=node.names, microbial=node.origin)
+node.data[node.origin, "transcriptome"] <- "Microbial"
+node.data[!node.origin, "transcriptome"] <- "Host"
+node.data[node.origin, "color"] <- "red3"
+node.data[!node.origin, "color"] <- "blue3"
+
+net <- igraph::graph_from_data_frame(graph.data.w.w, vertices=node.data, 
+                                     directed=F)
+igraph::E(net)$weight <- graph.data.w.w$statistic
+
+
+ncolors <- length(unique(graph.data.w.w$statistic))
+brbg <- rev(RColorBrewer::brewer.pal(ncolors, "BrBG"))
+brbg_hcl <- c(colorRampPalette(c(brbg[1], brbg[6]))(51), 
+    colorRampPalette(c(brbg[6], brbg[11]))(51)[-1])
+
+pal <- scales::gradient_n_pal(colours = c("green","black","blue"),
+      values= c(-42, 0, 42),)
+# use data in a to generate palette-generated values in the data
+igraph::E(net)$color <- pal(igraph::E(net)$weight)
+
+c_scale <- viridis::viridis(length(unique(graph.data.w.w$statistic)))
+igraph::E(net)$color <-brbg_hcl[order(graph.data.w.w$statistic)]
+
+
+net <- igraph::simplify(net, remove.multiple=F, remove.loops=T) 
+igraph::V(net)$colors <- node.data$color
+igraph::V(net)$label <- NA
+
+
+circle.layout <- igraph::layout_in_circle(net)
+plot(net, layout=circle.layout) 
+legend(x=-1, y=-0.85, c("Host", "Microbial"), pch=21,
+       col="#777777", pt.bg=c("blue3", "red3"), pt.cex=2, cex=.8, bty="n", ncol=1)
+
+dev.copy(png,'circle_w_w.png')
+dev.off()
+par(old.par)
+
+
+
+non.signed.net <- net
+igraph::E(non.signed.net)$weight <- abs(igraph::E(non.signed.net)$weight)
+
+fr.layout <- igraph::layout_with_fr(non.signed.net)
+plot(non.signed.net, layout=fr.layout)
+legend(x="bottomleft", c("Host", "Microbial"), pch=21,
+       col="#777777", pt.bg=c("blue3", "red3"), pt.cex=2, cex=.8, bty="n", ncol=1)
+
+
+igraph::E(net)$Weight <- igraph::E(net)$weight
+igraph::V(net)$Transcriptome <- igraph::V(net)$transcriptome
+
+names(igraph::V(net))
+s <- sort(names(igraph::V(net)))
+net.sorted <- igraph::permute(net, match(igraph::V(net)$name, s))
+
+
+ggraph(net.sorted, layout="circle") +
+    geom_edge_link(aes(edge_color=Weight), linewidth=1, alpha=1) +   # add edges to the plot
+    geom_node_point(aes(color=Transcriptome), size=12) +
+    scale_edge_color_gradient2(low="forestgreen", high="brown",mid="grey",) +
+    scale_color_manual(labels=c("Host", "Microbial"),
+                       values=c("blue3", "red3")) +
+    theme_void() +
+    theme(legend.title=element_text(size=26), 
+    legend.text=element_text(size=20))
+
+ggsave("circle_network.png", bg="transparent", width=12, height=10)
 ```
 
 ## WGCNA-SCNIC
@@ -430,4 +513,11 @@ bwnet.modules.all <- data.frame(name=names(bwnet.all$colors),
                             module=unname(bwnet.all$colors))
 bwnet.modules.all <- bwnet.modules.all[order(bwnet.modules.all$module),]
 write.csv(bwnet.modules.all, "all_wgcna_module_contents.csv")
+```
+
+
+# Intra-module hubs
+```{r}
+
+
 ```
