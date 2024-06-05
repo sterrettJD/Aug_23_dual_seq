@@ -48,6 +48,7 @@ loc_for_hostile_db_download: data
 
 # Path to MetaPhlan bowtie database (step 1 of HUMAnN)
 metaphlan_bowtie_db: data/metaphlan_db/
+metaphlan_index_name: mpa_vOct22_CHOCOPhlAnSGB_202403
 
 # Paths to Chocophlan and UniRef databases for HUMAnN
 # If these aren't already downloaded, HoMi will download them
@@ -82,3 +83,5 @@ map_host_partition: long
 map_host_runtime: 4320 # 3 days
 map_host_threads: 48
 map_host_mem_mb: 250000
+
+generate_feature_counts_runtime: 720
