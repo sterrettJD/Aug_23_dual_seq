@@ -335,7 +335,6 @@ plotDendroAndColors(
 
 plotEigengeneNetworks(bwnet.all$MEs, "Eigengene Adjacency Heatmap", marHeatmap = c(3,4,2,2))
 
-
 ```
 
 
@@ -474,14 +473,14 @@ net.sorted <- igraph::permute(net, match(igraph::V(net)$name, s))
 
 
 ggraph(net.sorted, layout="circle") +
-    geom_edge_link(aes(edge_color=Weight), linewidth=1, alpha=1) +   # add edges to the plot
+    geom_edge_link(aes(edge_color=Weight), linewidth=1.5, alpha=1) +   # add edges to the plot
     geom_node_point(aes(color=Transcriptome), size=12) +
     scale_edge_color_gradient2(low="forestgreen", high="brown",mid="grey",) +
     scale_color_manual(labels=c("Host", "Microbial"),
                        values=c("blue3", "red3")) +
     theme_void() +
-    theme(legend.title=element_text(size=26), 
-    legend.text=element_text(size=20))
+    theme(legend.title=element_text(size=30), 
+    legend.text=element_text(size=24))
 
 ggsave("circle_network.png", bg="transparent", width=12, height=10)
 ```
@@ -520,4 +519,17 @@ write.csv(bwnet.modules.all, "all_wgcna_module_contents.csv")
 ```{r}
 
 
+```
+
+# Hairball
+```{r, eval=FALSE}
+# I think this needs ~32GB total for the big cor mat...
+# Migrate to a separate script and run on the cluster
+Sys.setenv(R_MAX_VSIZE = 32e9)
+cor.mat <- cor(both.datasets)
+binarize <- function(x, threshold){
+    return ((x>=threshold) * 1)
+}
+cor.mat[1,] <- binarize(cor.mat[1,], threshold=0.5)
+hairball <- igraph::graph_from_adjacency_matrix(cor.mat)
 ```
