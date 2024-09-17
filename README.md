@@ -11,7 +11,7 @@ Using tools from [seq-helper-scripts](https://github.com/lozuponelab/seq-helper-
 
 ## Processing
 
-- Raw data were processed using [HoMi](https://github.com/sterrettJD/HoMi) with the config file `HoMi_config.yaml`
+- Raw data were processed using [HoMi](https://github.com/sterrettJD/HoMi) with the config file `HoMi_config.yaml`, using the script `utils/run_HoMi.sbatch`
 
 ## Analysis
 
