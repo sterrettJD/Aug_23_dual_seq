@@ -1,0 +1,47 @@
+---
+title: "table1"
+author: "John Sterrett"
+date: "2024-11-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(table1)
+```
+
+# Load data
+```{r}
+df <- data.table::fread("../16s-data/16S_meta.txt", data.table=F)
+
+df$Group <- df$MSM
+df[df$Group=="MSW", "Group"] <- "HIV(-) MSW"
+df[df$Group=="MSM", "Group"] <- "HIV(-) MSM"
+df[df$Group=="Postive", "Group"] <- "HIV(+)"
+df[df$Group=="WSM", "Group"] <- "HIV(-) Women"
+df$Group <- factor(df$Group, 
+                   levels=c("HIV(-) Women", "HIV(-) MSW", "HIV(-) MSM", "HIV(+)"))
+
+is.DM <- grepl("DM", df$Sample_ID)
+number <- stringr::str_split(df$Sample_ID, pattern="_") %>% 
+    lapply(function(x){x[2]}) %>% 
+    unlist() %>% 
+    as.numeric()
+
+df$storage_method <- rep(NA, nrow(df)) %>% as.character()
+df[((number < 33) & (is.DM)), "storage_method"] <- "PBS"
+df[is.na(df$storage_method), "storage_method"] <- "RNALater"
+
+# Get paired samples
+df$isDM_number <- paste0(is.DM, number)
+paired.samples <- df[which(duplicated(df$isDM_number)), "isDM_number"]
+df$paired <- FALSE
+df[df$isDM_number %in% paired.samples, "paired"] <- TRUE
+```
+
+# Make table
+```{r}
+table1(~ Group + paired | storage_method, data=df)
+
+```
