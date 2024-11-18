@@ -1,0 +1,122 @@
+---
+title: "RNA Biotypes"
+author: "John Sterrett"
+date: "2024-11-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(AnnotationDbi,
+               DESeq2,
+               data.table,
+               tidyverse,
+               ggplot2)
+
+# R.utils is needed to fread the annotation file
+# install.packages('R.utils')
+
+#setwd("analysis")
+```
+
+# Load
+```{r}
+counts <- fread("../seq.f0.0.r0.0.host/copy_of_counts.txt")
+# remove prefix from sample IDs
+#colnames(counts) <- colnames(counts) %>% 
+#    gsub(pattern="t32.bbmap.GRCh38/", replacement="")
+
+
+annotation <- fread("https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_full_analysis_set.refseq_annotation.gtf.gz")
+
+setnames(annotation, 
+         names(annotation), 
+         c("chr","source","type","start","end","score","strand","phase","attributes") )
+
+extract_attributes <- function(gtf_attributes, att_of_interest){
+  att <- unlist(strsplit(gtf_attributes, " "))
+  if(att_of_interest %in% att){
+    return(gsub("\"|;","", att[which(att %in% att_of_interest)+1]))
+  }else{
+    return(NA)}
+}
+
+annotation$Geneid <- unlist(lapply(annotation$attributes, extract_attributes, "gene_id"))
+annotation$transcript_biotype <- unlist(lapply(annotation$attributes, extract_attributes, "transcript_biotype"))
+
+collapse_transcript_biotype <- function(entries){
+    
+    entries.cleaned <- entries[entries!="transcript"]
+    entries.cleaned.nona <- entries[!is.na(entries)]
+    first.entry <- dplyr::first(entries.cleaned.nona)
+    return(first.entry)
+}
+annotation.by.gene <- annotation %>% 
+    dplyr::group_by(Geneid) %>%
+    dplyr::summarise(transcript_biotype=collapse_transcript_biotype(transcript_biotype))
+
+```
+
+```{r}
+sample.cols <- !(colnames(counts) %in% c("Geneid","Chr","Start","End","Strand","Length"))
+
+sample.counts <- counts[,..sample.cols] %>% as.matrix()
+
+sample.counts.df <- as.data.frame(sample.counts)
+sample.counts <- sample.counts.df %>% as.matrix()
+
+
+rownames(sample.counts) <- counts$Geneid
+
+gene.lengths <- counts$Length
+
+# https://support.bioconductor.org/p/91218/
+# convert to TPM
+tpm3 <- function(counts,len) {
+  x <- counts/len
+  return(t(t(x)*1e6/colSums(x)))
+}
+fread("../seq.f0.0.r0.0.host/host_gene_counts_tpm.csv")
+sample.counts.tpm <- tpm3(sample.counts, gene.lengths)
+
+counts.tpm <- cbind(counts$Geneid, sample.counts.tpm) %>% as.data.frame()
+
+counts.tpm <- counts.tpm %>% 
+    rename("Geneid"="V1")
+
+counts.tpm <- counts.tpm %>% 
+    mutate_at(vars(-c("Geneid")), as.numeric)
+
+```
+
+```{r}
+counts.with.annotation <- merge(x=counts.tpm, 
+                                y=annotation.by.gene, 
+                                by="Geneid", 
+                                all.x=T,
+                                all.y=F)
+
+counts.with.annotation %>% write.csv("Sample_counts_tpm.csv")
+
+mean.class.by.sample <- counts.with.annotation %>% 
+    as.data.table %>%
+    melt(id.vars=c("transcript_biotype", "Geneid")) %>% 
+    rename(Sample=variable) %>%
+    group_by(transcript_biotype, Sample) %>%
+    summarise(tpm=sum(value)) 
+
+
+mean.class.by.sample %>% 
+    group_by(transcript_biotype) %>% 
+    summarise(tpm=mean(tpm)) %>%
+    write.csv("RNA_class_tpm.csv")
+
+ggplot(mean.class.by.sample, aes(fill=transcript_biotype, y=tpm, x=Sample)) + 
+    geom_bar(position="stack", stat="identity") + 
+    theme_bw() +
+    theme(axis.text.x=element_text(angle=30, hjust=1)) +
+    ylab("Transcripts per million host reads")
+ggsave("polyA_rna_biotypes.pdf")
+
+```
