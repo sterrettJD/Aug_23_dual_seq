@@ -97,7 +97,7 @@ counts.with.annotation <- merge(x=counts.tpm,
                                 all.x=T,
                                 all.y=F)
 
-counts.with.annotation %>% write.csv("Sample_counts_tpm.csv")
+# counts.with.annotation %>% write.csv("Sample_counts_tpm.csv")
 
 mean.class.by.sample <- counts.with.annotation %>% 
     as.data.table %>%
@@ -111,6 +111,45 @@ mean.class.by.sample %>%
     group_by(transcript_biotype) %>% 
     summarise(tpm=mean(tpm)) %>%
     write.csv("RNA_class_tpm.csv")
+
+
+get_biotype_class <- function(biotype){
+    if(grepl("gene_segment", biotype)){
+        return("Immunoglobulin segment")
+    }
+    
+    mRNA <- c("mRNA")
+    antisense <- c("antisense_RNA")
+    immuno_segs <- c("C_gene_segment",
+                     "D_gene_segment",
+                     "J_gene_segment",
+                     "V_gene_segment")
+    nc_rnas <- c("miRNA","miscRNA","piRNA",
+                 "rRNA", "siRNA", "snRNA", 
+                 "snoRNA","tRNA","vaultRNA",
+                 "Mt_rRNA", "Mt_tRNA", "scRNA",
+                 "ribozyme", "sRNA", "scaRNA",
+                 "ncRNA", "Y_RNA", "lncRNA")
+    
+    # create a named vector for mapping biotypes to higher names
+    vals <- c(rep("mRNA", length(mRNA)),
+              rep("Antisense", length(antisense)),
+              rep("Immunoglobulin", length(immuno_segs)),
+              rep("Non-coding", length(nc_rnas))
+    )
+    
+    biotypes <- c(mRNA, antisense, immuno_segs, nc_rnas)
+    names(vals) <- biotypes
+    
+    
+    class <- vals[biotype]
+    if(!is.na(class)){
+        return(unname(class))
+    }
+    return("Other")
+}
+
+
 
 ggplot(mean.class.by.sample, aes(fill=transcript_biotype, y=tpm, x=Sample)) + 
     geom_bar(position="stack", stat="identity") + 
