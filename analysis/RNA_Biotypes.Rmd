@@ -23,12 +23,13 @@ pacman::p_load(AnnotationDbi,
 # Load
 ```{r}
 counts <- fread("../seq.f0.0.r0.0.host/copy_of_counts.txt")
-# remove prefix from sample IDs
-#colnames(counts) <- colnames(counts) %>% 
-#    gsub(pattern="t32.bbmap.GRCh38/", replacement="")
 
+if(!file.exists("GRCh38_full_analysis_set.refseq_annotation.gtf.gz")){
+        options(timeout=max(300, getOption("timeout")))
+    download.file("https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_full_analysis_set.refseq_annotation.gtf.gz", destfile="GRCh38_full_analysis_set.refseq_annotation.gtf.gz")
+}
 
-annotation <- fread("https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_full_analysis_set.refseq_annotation.gtf.gz")
+annotation <- fread("GRCh38_full_analysis_set.refseq_annotation.gtf.gz")
 
 setnames(annotation, 
          names(annotation), 
@@ -112,6 +113,17 @@ mean.class.by.sample %>%
     summarise(tpm=mean(tpm)) %>%
     write.csv("RNA_class_tpm.csv")
 
+ggplot(mean.class.by.sample, aes(fill=transcript_biotype, y=tpm, x=Sample)) + 
+    geom_bar(position="stack", stat="identity") + 
+    theme_bw() +
+    theme(axis.text.x=element_text(angle=30, hjust=1)) +
+    ylab("Transcripts per million host reads")
+ggsave("polyA_rna_biotypes.pdf")
+
+```
+
+
+```{r hierarchical plotting}
 
 get_biotype_class <- function(biotype){
     if(grepl("gene_segment", biotype)){
@@ -129,11 +141,11 @@ get_biotype_class <- function(biotype){
                  "snoRNA","tRNA","vaultRNA",
                  "Mt_rRNA", "Mt_tRNA", "scRNA",
                  "ribozyme", "sRNA", "scaRNA",
-                 "ncRNA", "Y_RNA", "lncRNA")
+                 "ncRNA", "Y_RNA", 
+                 "lncRNA","lnc_RNA")
     
     # create a named vector for mapping biotypes to higher names
     vals <- c(rep("mRNA", length(mRNA)),
-              rep("Antisense", length(antisense)),
               rep("Immunoglobulin", length(immuno_segs)),
               rep("Non-coding", length(nc_rnas))
     )
@@ -149,13 +161,50 @@ get_biotype_class <- function(biotype){
     return("Other")
 }
 
+hier.tab <- data.frame(biotype=counts.with.annotation$transcript_biotype, 
+                       class=unname(sapply(counts.with.annotation$transcript_biotype, 
+                                           FUN=get_biotype_class)
+                                    )
+                       )
+hier.tab <- as.matrix(hier.tab)
+rownames(hier.tab) <- counts.with.annotation$Geneid
 
+pseq <- phyloseq::phyloseq(phyloseq::otu_table(sample.counts.tpm, taxa_are_rows=T),
+                   phyloseq::tax_table(hier.tab))
 
-ggplot(mean.class.by.sample, aes(fill=transcript_biotype, y=tpm, x=Sample)) + 
-    geom_bar(position="stack", stat="identity") + 
-    theme_bw() +
-    theme(axis.text.x=element_text(angle=30, hjust=1)) +
-    ylab("Transcripts per million host reads")
-ggsave("polyA_rna_biotypes.pdf")
+# prep the microshades colors
+mdf_prep <- microshades::prep_mdf(pseq, subgroup_level="class")
+
+# create the colors object
+color_objs_GP <- microshades::create_color_dfs(mdf_prep, 
+                                               selected_groups=c("mRNA","Immunoglobulin segment", "Non-coding"),
+                                               group_level="class", 
+                                               subgroup_level="biotype",
+                                               cvd=TRUE)
+color_objs_GP <- microshades::reorder_samples_by(color_objs_GP$mdf,
+                   color_objs_GP$cdf,
+                   group_level="class", 
+                   subgroup_level="biotype",
+                   order_tax = "mRNA", 
+                   sink_abundant_groups=F)
+# Extract
+mdf_GP <- color_objs_GP$mdf
+cdf_GP <- color_objs_GP$cdf
+# create a custom legend
+GP_legend <- microshades::custom_legend(mdf_GP, cdf_GP, 
+                          legend_key_size=unit(0.4, "cm"),
+                          legend_text_size=10,
+                          group_level="class",
+                          subgroup_level="biotype")
+
+# plot
+plot <- microshades::plot_microshades(mdf_GP, cdf_GP)
+plot_1 <- plot + scale_y_continuous(labels = scales::percent, 
+                                        expand = expansion(0)) +
+      theme(legend.position = "none")  +
+      theme(axis.text.x = element_text(size= 7)) 
+    
+multi <- cowplot::plot_grid(plot_1, GP_legend,  rel_widths = c(1, .4))
+multi
 
 ```
