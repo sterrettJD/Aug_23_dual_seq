@@ -1,0 +1,210 @@
+---
+title: "RNA Biotypes"
+author: "John Sterrett"
+date: "2024-11-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(AnnotationDbi,
+               DESeq2,
+               data.table,
+               tidyverse,
+               ggplot2)
+
+# R.utils is needed to fread the annotation file
+# install.packages('R.utils')
+
+#setwd("analysis")
+```
+
+# Load
+```{r}
+counts <- fread("../seq.f0.0.r0.0.host/copy_of_counts.txt")
+
+if(!file.exists("GRCh38_full_analysis_set.refseq_annotation.gtf.gz")){
+        options(timeout=max(300, getOption("timeout")))
+    download.file("https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_full_analysis_set.refseq_annotation.gtf.gz", destfile="GRCh38_full_analysis_set.refseq_annotation.gtf.gz")
+}
+
+annotation <- fread("GRCh38_full_analysis_set.refseq_annotation.gtf.gz")
+
+setnames(annotation, 
+         names(annotation), 
+         c("chr","source","type","start","end","score","strand","phase","attributes") )
+
+extract_attributes <- function(gtf_attributes, att_of_interest){
+  att <- unlist(strsplit(gtf_attributes, " "))
+  if(att_of_interest %in% att){
+    return(gsub("\"|;","", att[which(att %in% att_of_interest)+1]))
+  }else{
+    return(NA)}
+}
+
+annotation$Geneid <- unlist(lapply(annotation$attributes, extract_attributes, "gene_id"))
+annotation$transcript_biotype <- unlist(lapply(annotation$attributes, extract_attributes, "transcript_biotype"))
+
+collapse_transcript_biotype <- function(entries){
+    
+    entries.cleaned <- entries[entries!="transcript"]
+    entries.cleaned.nona <- entries[!is.na(entries)]
+    first.entry <- dplyr::first(entries.cleaned.nona)
+    return(first.entry)
+}
+annotation.by.gene <- annotation %>% 
+    dplyr::group_by(Geneid) %>%
+    dplyr::summarise(transcript_biotype=collapse_transcript_biotype(transcript_biotype))
+
+```
+
+```{r}
+sample.cols <- !(colnames(counts) %in% c("Geneid","Chr","Start","End","Strand","Length"))
+
+sample.counts <- counts[,..sample.cols] %>% as.matrix()
+
+sample.counts.df <- as.data.frame(sample.counts)
+sample.counts <- sample.counts.df %>% as.matrix()
+
+
+rownames(sample.counts) <- counts$Geneid
+
+gene.lengths <- counts$Length
+
+# https://support.bioconductor.org/p/91218/
+# convert to TPM
+tpm3 <- function(counts,len) {
+  x <- counts/len
+  return(t(t(x)*1e6/colSums(x)))
+}
+fread("../seq.f0.0.r0.0.host/host_gene_counts_tpm.csv")
+sample.counts.tpm <- tpm3(sample.counts, gene.lengths)
+
+counts.tpm <- cbind(counts$Geneid, sample.counts.tpm) %>% as.data.frame()
+
+counts.tpm <- counts.tpm %>% 
+    rename("Geneid"="V1")
+
+counts.tpm <- counts.tpm %>% 
+    mutate_at(vars(-c("Geneid")), as.numeric)
+
+```
+
+```{r}
+counts.with.annotation <- merge(x=counts.tpm, 
+                                y=annotation.by.gene, 
+                                by="Geneid", 
+                                all.x=T,
+                                all.y=F)
+
+# counts.with.annotation %>% write.csv("Sample_counts_tpm.csv")
+
+mean.class.by.sample <- counts.with.annotation %>% 
+    as.data.table %>%
+    melt(id.vars=c("transcript_biotype", "Geneid")) %>% 
+    rename(Sample=variable) %>%
+    group_by(transcript_biotype, Sample) %>%
+    summarise(tpm=sum(value)) 
+
+
+mean.class.by.sample %>% 
+    group_by(transcript_biotype) %>% 
+    summarise(tpm=mean(tpm)) %>%
+    write.csv("RNA_class_tpm.csv")
+
+ggplot(mean.class.by.sample, aes(fill=transcript_biotype, y=tpm, x=Sample)) + 
+    geom_bar(position="stack", stat="identity") + 
+    theme_bw() +
+    theme(axis.text.x=element_text(angle=30, hjust=1)) +
+    ylab("Transcripts per million host reads")
+ggsave("polyA_rna_biotypes.pdf")
+
+```
+
+
+```{r hierarchical plotting}
+
+get_biotype_class <- function(biotype){
+    if(grepl("gene_segment", biotype)){
+        return("Immunoglobulin segment")
+    }
+    
+    mRNA <- c("mRNA")
+    antisense <- c("antisense_RNA")
+    immuno_segs <- c("C_gene_segment",
+                     "D_gene_segment",
+                     "J_gene_segment",
+                     "V_gene_segment")
+    nc_rnas <- c("miRNA","miscRNA","piRNA",
+                 "rRNA", "siRNA", "snRNA", 
+                 "snoRNA","tRNA","vaultRNA",
+                 "Mt_rRNA", "Mt_tRNA", "scRNA",
+                 "ribozyme", "sRNA", "scaRNA",
+                 "ncRNA", "Y_RNA", 
+                 "lncRNA","lnc_RNA")
+    
+    # create a named vector for mapping biotypes to higher names
+    vals <- c(rep("mRNA", length(mRNA)),
+              rep("Immunoglobulin", length(immuno_segs)),
+              rep("Non-coding", length(nc_rnas))
+    )
+    
+    biotypes <- c(mRNA, antisense, immuno_segs, nc_rnas)
+    names(vals) <- biotypes
+    
+    
+    class <- vals[biotype]
+    if(!is.na(class)){
+        return(unname(class))
+    }
+    return("Other")
+}
+
+hier.tab <- data.frame(biotype=counts.with.annotation$transcript_biotype, 
+                       class=unname(sapply(counts.with.annotation$transcript_biotype, 
+                                           FUN=get_biotype_class)
+                                    )
+                       )
+hier.tab <- as.matrix(hier.tab)
+rownames(hier.tab) <- counts.with.annotation$Geneid
+
+pseq <- phyloseq::phyloseq(phyloseq::otu_table(sample.counts.tpm, taxa_are_rows=T),
+                   phyloseq::tax_table(hier.tab))
+
+# prep the microshades colors
+mdf_prep <- microshades::prep_mdf(pseq, subgroup_level="class")
+
+# create the colors object
+color_objs_GP <- microshades::create_color_dfs(mdf_prep, 
+                                               selected_groups=c("mRNA","Immunoglobulin segment", "Non-coding"),
+                                               group_level="class", 
+                                               subgroup_level="biotype",
+                                               cvd=TRUE)
+color_objs_GP <- microshades::reorder_samples_by(color_objs_GP$mdf,
+                   color_objs_GP$cdf,
+                   group_level="class", 
+                   subgroup_level="biotype",
+                   order_tax = "mRNA", 
+                   sink_abundant_groups=F)
+# Extract
+mdf_GP <- color_objs_GP$mdf
+cdf_GP <- color_objs_GP$cdf
+# create a custom legend
+GP_legend <- microshades::custom_legend(mdf_GP, cdf_GP, 
+                          legend_key_size=unit(0.4, "cm"),
+                          legend_text_size=10,
+                          group_level="class",
+                          subgroup_level="biotype")
+
+# plot
+plot <- microshades::plot_microshades(mdf_GP, cdf_GP)
+plot_1 <- plot + scale_y_continuous(labels = scales::percent, 
+                                        expand = expansion(0)) +
+      theme(legend.position = "none")  +
+      theme(axis.text.x = element_text(size= 7)) 
+    
+multi <- cowplot::plot_grid(plot_1, GP_legend,  rel_widths = c(1, .4))
+multi
+
+```
