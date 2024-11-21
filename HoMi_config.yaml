@@ -83,3 +83,5 @@ map_host_threads: 32
 map_host_mem_mb: 210000
 
 generate_feature_counts_runtime: 720
+
+reads_breakdown_runtime: 720
