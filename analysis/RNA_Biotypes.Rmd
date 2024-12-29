@@ -279,3 +279,25 @@ multi <- cowplot::plot_grid(plot_1, GP_legend,  rel_widths = c(1, .4))
 multi 
 ggsave("RNA_biotypes_with_nonhost.pdf", multi)
 ```
+
+```{r hierarchical table}
+breakdown %>%
+    dplyr::select(-c(V1)) %>%
+    summary() %>% 
+    knitr::kable()
+
+
+breakdown %>%
+    dplyr::select(-c(V1)) %>%
+    summarise_all(
+    .funs = list(
+      mean = ~ mean(.x, na.rm = TRUE),
+      sd = ~ sd(.x, na.rm = TRUE),
+      n = ~ sum(!is.na(.x)),
+      lower_ci = ~ mean(.x, na.rm = TRUE) - qt(0.975, n() - 1) * sd(.x, na.rm = TRUE) / sqrt(n()),
+      upper_ci = ~ mean(.x, na.rm = TRUE) + qt(0.975, n() - 1) * sd(.x, na.rm = TRUE) / sqrt(n())
+    )
+  ) %>%
+    knitr::kable()
+
+```
