@@ -113,7 +113,7 @@ metadata[!is.DM, "Participant"] <- paste0("LG_", number[!is.DM])
 
 metadata %>% 
     group_by(Participant) %>% 
-    summarise(MSM=first(MSM)) %>%
+    summarise(MSM=dplyr::first(MSM)) %>%
     select(MSM) %>%
     as.data.frame() %>%
     mutate(MSM=as.factor(MSM)) %>%
@@ -238,6 +238,45 @@ tax.aitch.pcoa.dat %>%
     
 ```
 
+## Distance-based statistics
+### Prep
+We'll need to only grab timepoint 1 data to avoid longitudinal sampling from the same individual
+```{r}
+get_timepoint <- function(sampleIDs) {
+  split_strings <- str_split(sampleIDs, "_")
+  # LG samples don't have a timepoint, so we'll just fill in "1" for them
+  timepoints <- sapply(split_strings, function(x) {
+    if (length(x) >= 3) {
+      return(as.numeric(x[3]))
+    } else {
+      return(1)
+    }
+  })
+  return(timepoints)
+}
+
+# subset the distance matrix to only time 1
+index.t1 <- which(get_timepoint(names(notax.aitch))==1)
+names.t1 <- names(notax.aitch)[index.t1]
+t1.notax.aitch <- usedist::dist_subset(notax.aitch, names.t1)
+
+# Subset the metadata
+t1.notax.aitch.pcoa.dat <- notax.aitch.pcoa.dat[index.t1,]
+
+# Make sure it worked
+if(sum(t1.notax.aitch.pcoa.dat$Row.names==names(t1.notax.aitch)) != nrow(t1.notax.aitch.pcoa.dat)){
+    stop("order of dist matrix and df are not the same")
+}
+```
+
+### Run PERMANOVA on timepoint 1 only as a function of storage method
+```{r}
+vegan::adonis2(t1.notax.aitch ~ t1.notax.aitch.pcoa.dat$storage_method, 
+               permutations=10^5)
+
+```
+
+
 # Differential Expression using HoMiStats {.tabset}
 ## Setup
 ```{r DEsetup}
@@ -248,6 +287,10 @@ metadata$HIV_Status_num <- metadata$HIV_Status %>%
 metadata$Participant_num <- metadata$Participant %>%
     as.factor() %>%
     as.numeric() - 1
+
+metadata$MSM_bin <- (metadata$MSM=="MSM") %>%
+    as.numeric()
+
 
 get_timepoint <- function(sampleIDs) {
   split_strings <- str_split(sampleIDs, "_")
@@ -271,8 +314,8 @@ metadata.nonlong.nopbs <- metadata %>%
            storage_method!="PBS")
 ```
 
-
-## Pfams
+## HIV {.tabset}
+### Pfams
 ```{r homistats_pfam, warning=F}
 gf.pfam.notax.rel <- t(gf.pfam.notax)/colSums(gf.pfam.notax)
 gf.pfam.notax.rel.nonlong.nopbs <- gf.pfam.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
@@ -296,7 +339,7 @@ pfam.DE %>% filter(term=="var1",
 ```
 
 
-## KO
+### KO
 ```{r homistats_ko, warning=F}
 gf.ko.notax.rel <- t(gf.ko.notax)/colSums(gf.ko.notax)
 gf.ko.notax.rel.nonlong.nopbs <- gf.ko.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
@@ -320,7 +363,7 @@ ko.DE %>% filter(term=="var1",
 ```
 
 
-## GO terms
+### GO terms
 ```{r homistats_go, warning=F}
 gf.go.notax.rel <- t(gf.go.notax)/colSums(gf.go.notax)
 gf.go.notax.rel.nonlong.nopbs <- gf.go.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
@@ -344,7 +387,7 @@ go.DE %>% filter(term=="var1",
 ```
 
 
-## RXN numbers
+### RXN numbers
 ```{r homistats_rxn, warning=F}
 gf.rxn.notax.rel <- t(gf.rxn.notax)/colSums(gf.rxn.notax)
 gf.rxn.notax.rel.nonlong.nopbs <- gf.rxn.notax.rel[metadata.nonlong.nopbs$Sample_ID,]
@@ -358,6 +401,91 @@ rxn.DE <- run_mtxDE("HIV_Status_num",
                    show_progress=FALSE)
 
 rxn.DE %>% filter(term=="var1",
+                 q <= 0.05) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+
+## MSM {.tabset}
+### Pfams
+```{r homistats_pfam_msm, warning=F}
+pfam.DE.msm <- run_mtxDE(formula="MSM_bin", 
+                   feature.table=gf.pfam.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
+
+pfam.DE.msm %>% filter(term=="var1",
+                 q <= 0.2) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+
+### KO
+```{r homistats_ko_msm, warning=F}
+ko.DE.msm <- run_mtxDE("MSM_bin", 
+                   feature.table=gf.ko.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
+
+ko.DE.msm %>% filter(term=="var1",
+                 q <= 0.2) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+
+### GO terms
+```{r homistats_go_msm, warning=F}
+go.DE.msm <- run_mtxDE("MSM_bin", 
+                   feature.table=gf.go.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
+
+go.DE.msm %>% filter(term=="var1",
+                 q <= 0.05) %>%
+    arrange(q, descending=F) %>%
+    select(c(feature,
+             estimate, 
+             q)) %>% 
+    knitr::kable()
+
+```
+
+
+### RXN numbers
+```{r homistats_rxn_msm, warning=F}
+rxn.DE.msm <- run_mtxDE("MSM_bin", 
+                   feature.table=gf.rxn.notax.rel.nonlong.nopbs, 
+                   metadata=metadata.nonlong.nopbs,
+                   sampleID="Sample_ID", 
+                   reg.method="zibr",
+                   ncores=8, 
+                   show_progress=FALSE)
+
+rxn.DE.msm %>% filter(term=="var1",
                  q <= 0.05) %>%
     arrange(q, descending=F) %>%
     select(c(feature,
