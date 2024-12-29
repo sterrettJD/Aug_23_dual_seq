@@ -52,7 +52,7 @@ tpm <- function(counts,len) {
 gns.only.tpm <- tpm(gns.only, gn$Length)
 gns.only.tpm.pseudo <- tpm(gns.only+1, gn$Length)
 
-write.csv(gns.only.tpm, "../seq.f0.0.r0.0.host//host_gene_counts_tpm.csv")
+write.csv(gns.only.tpm, "../seq.f0.0.r0.0.host/host_gene_counts_tpm.csv")
 
 ```
 
@@ -131,13 +131,12 @@ tpm.aitch.pcoa.dat %>%
     geom_point(size=4)
 ```
 
-# Differential Expression {.tabset}
-## Prep data
-```{r DESeq_prep}
-metadata <- merge(metadata,
-                  tpm.aitch.pcoa.dat[c("Row.names", "storage_method")], 
-                  by.x="Sample_ID", by.y="Row.names")
+## PERMANOVA on Aitchison distance
 
+### Prep data
+
+We'll need to only grab timepoint 1 data to avoid longitudinal sampling from the same individual
+```{r}
 get_timepoint <- function(sampleIDs) {
   split_strings <- str_split(sampleIDs, "_")
   # LG samples don't have a timepoint, so we'll just fill in "1" for them
@@ -150,6 +149,35 @@ get_timepoint <- function(sampleIDs) {
   })
   return(timepoints)
 }
+
+# subset the distance matrix to only time 1
+index.t1 <- which(get_timepoint(names(tpm.aitch))==1)
+names.t1 <- names(tpm.aitch)[index.t1]
+t1.tpm.aitch <- usedist::dist_subset(tpm.aitch, names.t1)
+
+# Subset the metadata
+t1.tpm.aitch.pcoa.dat <- tpm.aitch.pcoa.dat[index.t1,]
+
+# Make sure it worked
+if(sum(t1.tpm.aitch.pcoa.dat$Row.names==names(t1.tpm.aitch)) != nrow(t1.tpm.aitch.pcoa.dat)){
+    stop("order of dist matrix and df are not the same")
+}
+```
+
+### Run PERMANOVA on timepoint 1 only as a function of storage method
+```{r}
+vegan::adonis2(t1.tpm.aitch ~ t1.tpm.aitch.pcoa.dat$storage_method, 
+               permutations=10^5)
+
+```
+
+# Differential Expression {.tabset}
+## Prep data
+```{r DESeq_prep}
+metadata <- merge(metadata,
+                  tpm.aitch.pcoa.dat[c("Row.names", "storage_method")], 
+                  by.x="Sample_ID", by.y="Row.names")
+
 
 metadata$timepoint <- get_timepoint(metadata$Sample_ID)
 
@@ -556,5 +584,19 @@ fgseaResTidy %>%
   knitr::kable()
 
 hist(fgseaResTidy$padj)
+
+```
+
+
+# Deconvolution
+fetch and gunzip the signature matrix from https://ftp.ncbi.nlm.nih.gov/geo/series/GSE116nnn/GSE116222/suppl/GSE116222%5FExpression%5Fmatrix.txt.gz
+Infor about that matrix can be found here: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE116222
+
+```{r deconvolution}
+abis <- immunedeconv::deconvolute(gns.only.tpm, method="abis")
+
+#immunedeconv::deconvolute_cibersort(gns.only.tpm, arrays=F)
+
+# es <- immunedeconv::deconvolute(gns.only.tpm, method="estimate")
 
 ```
