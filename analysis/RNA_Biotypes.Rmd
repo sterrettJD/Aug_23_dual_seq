@@ -236,8 +236,19 @@ other.hier <- matrix(c("Microbial", "Non-host", "Unmapped", "Non-host"), nrow=2,
                                 c("biotype", "class")))
 full.hier.tab <- rbind(hier.tab, other.hier)
 
+
+
+storage_method <- rep(NA, ncol(sample.counts.df)) %>% as.character()
+samples <- colnames(sample.counts.df)
+number <- str_split_i(samples, "_", i=2) %>% as.numeric()
+is.DM <- str_split_i(samples, "_", i=1) == "DM"
+storage_method[((number < 33) & (is.DM))] <- "PBS"
+storage_method[is.na(storage_method)] <- "RNALater"
+metadata <- data.frame(storage_method=storage_method, row.names=samples)
+
 pseq <- phyloseq::phyloseq(phyloseq::otu_table(sample.counts.tpm.scaled, taxa_are_rows=F),
-                   phyloseq::tax_table(full.hier.tab))
+                           phyloseq::tax_table(full.hier.tab),
+                           sample_data=phyloseq::sample_data(metadata))
 
 # prep the microshades colors
 mdf_prep <- microshades::prep_mdf(pseq, subgroup_level="class",
@@ -261,7 +272,7 @@ cdf_GP <- color_objs_GP$cdf
 # create a custom legend
 GP_legend <- microshades::custom_legend(mdf_GP, cdf_GP, 
                           legend_key_size=unit(0.4, "cm"),
-                          legend_text_size=10,
+                          legend_text_size=20,
                           group_level="class",
                           subgroup_level="biotype")
 
@@ -271,8 +282,13 @@ plot_1 <- plot +
     scale_y_continuous(expand=expansion(0)) +
     theme_minimal() +
     theme(legend.position = "none",
-            axis.text.x = element_text(size=7, angle=90, hjust=1)
-          ) 
+          axis.title.y = element_text(size=20, angle=90),
+          axis.title.x = element_text(size=20),
+          axis.ticks.x=element_blank(),
+          axis.text.x=element_blank(),
+          strip.text.x = element_text(size=20)
+          ) +
+    facet_grid(~storage_method, scales="free_x", space="free_x")
     
     
 multi <- cowplot::plot_grid(plot_1, GP_legend,  rel_widths = c(1, .4))
