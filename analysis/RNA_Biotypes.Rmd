@@ -293,7 +293,7 @@ plot_1 <- plot +
     
 multi <- cowplot::plot_grid(plot_1, GP_legend,  rel_widths = c(1, .4))
 multi 
-ggsave("RNA_biotypes_with_nonhost.pdf", multi)
+ggsave("RNA_biotypes_with_nonhost.pdf", multi, width=13, height=8)
 ```
 
 ```{r main breakdown table}
