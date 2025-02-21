@@ -12,7 +12,9 @@ pacman::p_load(AnnotationDbi,
                DESeq2,
                data.table,
                tidyverse,
-               ggplot2)
+               ggplot2,
+               lme4,
+               lmerTest)
 
 # R.utils is needed to fread the annotation file
 # install.packages('R.utils')
@@ -244,7 +246,9 @@ number <- str_split_i(samples, "_", i=2) %>% as.numeric()
 is.DM <- str_split_i(samples, "_", i=1) == "DM"
 storage_method[((number < 33) & (is.DM))] <- "PBS"
 storage_method[is.na(storage_method)] <- "RNALater"
-metadata <- data.frame(storage_method=storage_method, row.names=samples)
+metadata <- data.frame(storage_method=storage_method,
+                       PID=paste(is.DM, number), 
+                       row.names=samples)
 
 pseq <- phyloseq::phyloseq(phyloseq::otu_table(sample.counts.tpm.scaled, taxa_are_rows=F),
                            phyloseq::tax_table(full.hier.tab),
@@ -321,6 +325,42 @@ breakdown %>%
   ) %>%
     knitr::kable()
 
+run_reg_on_tpm <- function(y, x, rand=NULL){
+    mod.df <- data.frame(y=y, x=x, rand=rand)
+    
+    if(!is.null(rand)){
+        mod <- lmer(y ~ x + (1|rand), data=mod.df)
+        tidymod <- broom.mixed::tidy(mod)
+        tidymod$y <- col
+    } else {
+        mod <- lm(y ~ x, data=mod.df)
+        tidymod <- broom::tidy(mod)
+        tidymod$y <- col
+    }
+    return(tidymod)
+}
+
+metadata <- metadata[breakdown$V1,]
+
+res.columns <- c("effect", "group", "term", "estimate",
+                "std.error", "statistic", "df", "p.value")
+results <- data.frame(matrix(ncol=length(res.columns), nrow=0))
+colnames(results) <- res.columns
+
+for(col in colnames(select(breakdown, -c(V1)))){
+    rand <- metadata$PID
+    x <- metadata$storage_method
+    res <- run_reg_on_tpm(y=breakdown[,col], 
+                    x=x,
+                    rand=rand)
+
+    results <- rbind(results, res)
+    
+}
+
+results %>% 
+    filter(term == "xRNALater") %>%
+    knitr::kable()
 ```
 
 ```{r biotypes breakdown table}
