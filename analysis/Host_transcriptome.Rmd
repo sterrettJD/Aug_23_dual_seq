@@ -127,8 +127,14 @@ tpm.aitch.pcoa.dat %>%
 ### Sample ID not labeled
 ```{r}
 tpm.aitch.pcoa.dat %>%
-    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
-    geom_point(size=4)
+    dplyr::rename(`storage method` = storage_method) %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=`storage method`, label=Row.names)) +
+    geom_point(size=4) +
+    xlab("PC1") +
+    ylab("PC2")
+
+ggsave("PCoA_host_storage.pdf", width=8, height=6)
+    
 ```
 
 ## PERMANOVA on Aitchison distance

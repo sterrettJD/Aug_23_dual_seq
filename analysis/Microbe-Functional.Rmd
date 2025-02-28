@@ -201,8 +201,13 @@ notax.aitch.pcoa.dat %>%
 #### Not Labeled
 ```{r pcoa_aitch_storage_nl}
 notax.aitch.pcoa.dat %>%
-    ggplot(mapping=aes(Axis.1, Axis.2, color=storage_method, label=Row.names)) +
-    geom_point(size=4)
+    rename(`storage method` = storage_method) %>%
+    ggplot(mapping=aes(Axis.1, Axis.2, color=`storage method`, label=Row.names)) +
+    geom_point(size=4) +
+    xlab("PC1") +
+    ylab("PC2")
+
+ggsave("PCoA_microbial_func_storage.pdf", width=8, height=6)
     
 ```
 
