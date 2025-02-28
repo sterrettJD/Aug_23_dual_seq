@@ -1,0 +1,82 @@
+---
+title: "Taxa Barplot"
+author: "John Sterrett"
+output: html_document
+params:
+    metadata: "metadata.csv"
+    bugslist: NULL
+    directory: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+# Read Data
+```{r read data}
+df <- readxl::read_excel("MFI value Sodium Butyrate High End.xls", 
+                         col_names=as.character(1:7)) %>% 
+  t()
+
+colnames(df) <- df[1,]
+df <- as.data.frame(df[2:nrow(df),])
+
+
+get_butyrate_conc <- function(x){
+  if(!grepl("Sodium Butyrate", x)){
+    return(NA)
+  }
+  new <- gsub("Sodium Butyrate|mM", "", x)
+  return(as.numeric(new))
+}
+
+pivot.df <- df %>%
+  pivot_longer(cols=-c(Date, Type),
+               values_to="B7H7 MFI") %>%
+  mutate(`Butyrate concentration`=sapply(name, FUN=get_butyrate_conc),
+         `B7H7 MFI`=as.numeric(`B7H7 MFI`)) %>%
+  rename(Experiment=Date)
+```
+
+# B7H7 ~ Butyrate {.tabset}
+## Caco2
+```{r lm}
+mod <- lm(`B7H7 MFI` ~ `Butyrate concentration` + Experiment, 
+          data=filter(pivot.df,
+                      Type=="Caco2")
+          )
+
+broom::tidy(mod) %>% 
+  knitr::kable()
+
+```
+
+## T84
+```{r lmt84}
+mod <- lm(`B7H7 MFI` ~ `Butyrate concentration` + Experiment, 
+          data=filter(pivot.df,
+                      Type=="T84")
+          )
+
+broom::tidy(mod) %>% 
+  knitr::kable()
+
+```
+
+# Plot
+```{r plot}
+ggplot(data=pivot.df,
+       mapping=aes(x=`Butyrate concentration`,
+                   y=`B7H7 MFI`)) +
+  geom_point(size=3,
+             mapping=aes(color=`Experiment`)) +
+  geom_smooth(method="lm") +
+  facet_wrap(~Type, nrow=2, scales="free_y") +
+  xlab("Butyrate mM") +
+  theme_bw()
+
+ggsave("B7H7_lm.pdf")
+```
