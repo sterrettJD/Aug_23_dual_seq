@@ -35,6 +35,7 @@ metadata$Sample_ID <- NULL
 ## Metadata
 ```{r}
 # Format like in participant metadata
+metadata[metadata$MSM=="Postive", "MSM"] <- "Positive"
 metadata$participantID <- rownames(metadata) %>% 
     sapply(FUN=function(x){paste0(str_split(x, "_")[[1]][1], 
                                   "0", 
@@ -48,10 +49,45 @@ storage_method[((number < 33) & (is.DM))] <- "PBS"
 storage_method[is.na(storage_method)] <- "RNALater"
 
 metadata$storage_method <- storage_method
+metadata$second_sample <- duplicated(metadata$participantID)
+
+
+participant.metadata.DM <- data.table::fread("../High_Prev_Metadata_redcap_DM.csv", data.table=F)
+participant.metadata.LG <- data.table::fread("../High_Prev_Metadata_redcap_LG.csv", data.table=F)
+participant.metadata <- dplyr::bind_rows(participant.metadata.DM, 
+                                         participant.metadata.LG)
+participant.metadata$Sample <- participant.metadata$`Record ID`
+participant.metadata[participant.metadata==""] <- NA
+
+metadata$participantID <- rownames(metadata) %>% 
+    sapply(FUN=function(x){paste0(str_split(x, "_")[[1]][1], 
+                                  "0", 
+                                  str_split(x, "_")[[1]][2])})
+
+
+# participant.metadata$Gender <- participant.metadata$`What gender do you identify with?`
+# participant.metadata$Orientation <- participant.metadata$`What is your sexual orientation?`
+# participant.metadata$MSM <- participant.metadata$Gender=="Men" & (participant.metadata$Orientation=="Gay" | participant.metadata$Orientation=="Bisexual")
+# 
+# positive_participants <- metadata[metadata$MSM=="Positive", "participantID"]
+# positive_participants <- positive_participants[positive_participants %in% participant.metadata$`Record ID`]
+# for (PID in positive_participants){
+#     if(participant.metadata[participant.metadata$`Record ID`==PID, "MSM"]){
+#         metadata[metadata$participantID==PID, "MSM"] <- "HIV(+) MSM"
+#     } else {
+#         metadata[metadata$participantID==PID, "MSM"] <- "HIV(+) MSW"
+#     }
+# }
+
+
+
+metadata$MSM <- ordered(metadata$MSM, 
+                       levels=c("WSM", "MSW", "MSM", "Positive"))
 ```
 
 ## 16S
 ```{r}
+sample_data(s.pseq) <- metadata
 s.taxonomy.table <- tax_table(s.pseq) %>% as.data.frame()
 s.host <- s.taxonomy.table[s.taxonomy.table$Phylum=="Vertebrata",]
 s.host <- s.host[!is.na(s.host$Phylum),]
@@ -246,54 +282,54 @@ make_microshades <- function(pseq, biggroup="Phylum", subgroup="Genus", facet_by
 
 ## By HIV Status {.tabset}
 ### 16S
-```{r 16s_phy_genus_microshades_HIV, fig.width=8, fig.height=10}
+```{r 16s_phy_genus_microshades_HIV, warning=FALSE, fig.width=8, fig.height=10}
 make_microshades(s.pseq.nohost, facet_by="HIV_Status")
 ```
 
 ### Kraken
-```{r kraken_phy_genus_microshades_HIV, fig.width=8, fig.height=10}
+```{r kraken_phy_genus_microshades_HIV, warning=FALSE, fig.width=8, fig.height=10}
 make_microshades(k.pseq.nohost, biggroup="phylum", subgroup="genus", 
                  facet_by="HIV_Status")
 ```
 
 ### MetaPhlAn
-```{r metaphlan_phy_genus_microshades_HIV, fig.width=8, fig.height=10}
+```{r metaphlan_phy_genus_microshades_HIV, warning=FALSE, fig.width=8, fig.height=10}
 make_microshades(m.pseq, biggroup="Phylum", subgroup="Genus", 
                  facet_by="HIV_Status")
 ```
 
 ## By Cohort {.tabset}
 ### 16S
-```{r 16s_phy_genus_microshades_coh, fig.width=9, fig.height=10}
+```{r 16s_phy_genus_microshades_coh, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(s.pseq.nohost, facet_by="Cohort")
 ```
 
 ### Kraken
-```{r kraken_phy_genus_microshades_coh, fig.width=9, fig.height=10}
+```{r kraken_phy_genus_microshades_coh, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(k.pseq.nohost, biggroup="phylum", subgroup="genus", 
                  facet_by="Cohort")
 ```
 
 ### MetaPhlAn
-```{r metaphlan_phy_genus_microshades_coh, fig.width=9, fig.height=10}
+```{r metaphlan_phy_genus_microshades_coh, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(m.pseq, biggroup="Phylum", subgroup="Genus", 
                  facet_by="Cohort")
 ```
 
 ## By MSM {.tabset}
 ### 16S
-```{r 16s_phy_genus_microshades_msm, fig.width=9, fig.height=10}
+```{r 16s_phy_genus_microshades_msm, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(s.pseq.nohost, facet_by="MSM")
 ```
 
 ### Kraken
-```{r kraken_phy_genus_microshades_msm, fig.width=9, fig.height=10}
+```{r kraken_phy_genus_microshades_msm, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(k.pseq.nohost, biggroup="phylum", subgroup="genus", 
                  facet_by="MSM")
 ```
 
 ### MetaPhlAn
-```{r metaphlan_phy_genus_microshades_msm, fig.width=9, fig.height=10}
+```{r metaphlan_phy_genus_microshades_msm, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(m.pseq, biggroup="Phylum", subgroup="Genus", 
                  facet_by="MSM")
 ```
@@ -302,20 +338,20 @@ make_microshades(m.pseq, biggroup="Phylum", subgroup="Genus",
 # No PBS barplots
 ## By HIV Status {.tabset}
 ### 16S
-```{r 16s_phy_genus_microshades_HIV_nopbs, fig.width=8, fig.height=10}
+```{r 16s_phy_genus_microshades_HIV_nopbs, warning=FALSE, fig.width=8, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", s.pseq.nohost), 
                  facet_by="HIV_Status")
 ```
 
 ### Kraken
-```{r kraken_phy_genus_microshades_HIV_nopbs, fig.width=8, fig.height=10}
+```{r kraken_phy_genus_microshades_HIV_nopbs, warning=FALSE, fig.width=8, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", k.pseq.nohost), 
                  biggroup="phylum", subgroup="genus", 
                  facet_by="HIV_Status")
 ```
 
 ### MetaPhlAn
-```{r metaphlan_phy_genus_microshades_HIV_nopbs, fig.width=8, fig.height=10}
+```{r metaphlan_phy_genus_microshades_HIV_nopbs, warning=FALSE, fig.width=8, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", m.pseq), 
                  biggroup="Phylum", subgroup="Genus", 
                  facet_by="HIV_Status")
@@ -323,20 +359,20 @@ make_microshades(prune_samples(metadata$storage_method=="RNALater", m.pseq),
 
 ## By Cohort {.tabset}
 ### 16S
-```{r 16s_phy_genus_microshades_coh_nopbs, fig.width=9, fig.height=10}
+```{r 16s_phy_genus_microshades_coh_nopbs, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", s.pseq.nohost), 
                  facet_by="Cohort")
 ```
 
 ### Kraken
-```{r kraken_phy_genus_microshades_coh_nopbs, fig.width=9, fig.height=10}
+```{r kraken_phy_genus_microshades_coh_nopbs, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", k.pseq.nohost), 
                  biggroup="phylum", subgroup="genus", 
                  facet_by="Cohort")
 ```
 
 ### MetaPhlAn
-```{r metaphlan_phy_genus_microshades_coh_nopbs, fig.width=9, fig.height=10}
+```{r metaphlan_phy_genus_microshades_coh_nopbs, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", m.pseq), 
                  biggroup="Phylum", subgroup="Genus", 
                  facet_by="Cohort")
@@ -344,20 +380,20 @@ make_microshades(prune_samples(metadata$storage_method=="RNALater", m.pseq),
 
 ## By MSM {.tabset}
 ### 16S
-```{r 16s_phy_genus_microshades_msm_nopbs, fig.width=9, fig.height=10}
+```{r 16s_phy_genus_microshades_msm_nopbs, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", s.pseq.nohost), 
                  facet_by="MSM")
 ```
 
 ### Kraken
-```{r kraken_phy_genus_microshades_msm_nopbs, fig.width=9, fig.height=10}
+```{r kraken_phy_genus_microshades_msm_nopbs, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", k.pseq.nohost), 
                  biggroup="phylum", subgroup="genus", 
                  facet_by="MSM")
 ```
 
 ### MetaPhlAn
-```{r metaphlan_phy_genus_microshades_msm_nopbs, fig.width=9, fig.height=10}
+```{r metaphlan_phy_genus_microshades_msm_nopbs, warning=FALSE, fig.width=9, fig.height=10}
 make_microshades(prune_samples(metadata$storage_method=="RNALater", m.pseq), 
                  biggroup="Phylum", subgroup="Genus", 
                  facet_by="MSM")
@@ -371,11 +407,31 @@ make_microshades(prune_samples(metadata$storage_method=="RNALater", m.pseq),
 
 # Use multiplicative replacement instead for k and m?
 
-s.aitch <- coda.base::dist(t(otu_table(s.pseq.nohost))+1, method="aitchison")
-k.aitch <- coda.base::dist(t(otu_table(k.pseq.nohost))+1e-9, 
-                                                           method="aitchison")
-m.aitch <- coda.base::dist(t(otu_table(m.pseq))+1e-9, 
-                           method="aitchison")
+# filter samples for protest. Then get the otu table for distancing
+s.protest.data <- prune_samples(
+                        (metadata$storage_method=="RNALater" &
+                         !metadata$second_sample),
+                        s.pseq.nohost) %>%
+    otu_table() %>%
+    t()+1
+
+k.protest.data <- prune_samples(
+                        (metadata$storage_method=="RNALater" &
+                         !metadata$second_sample),
+                        k.pseq.nohost) %>%
+    otu_table() %>%
+    t()+1e-9
+
+m.protest.data <- prune_samples(
+                        (metadata$storage_method=="RNALater" &
+                         !metadata$second_sample),
+                        m.pseq) %>%
+    otu_table() %>%
+    t()+1e-9
+
+s.aitch <- coda.base::dist(s.protest.data, method="aitchison")
+k.aitch <- coda.base::dist(k.protest.data, method="aitchison")
+m.aitch <- coda.base::dist(m.protest.data, method="aitchison")
 ```
 
 ## 16S - Kraken
