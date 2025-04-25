@@ -16,7 +16,7 @@ pacman::p_load("qiime2R",
 ```
 
 # Load data
-```{r}
+```{r, warning=FALSE, message=FALSE}
 s.pseq <- qiime2R::qza_to_phyloseq(features="../16s-data/tax_filtered_dual.qza",
                               taxonomy="../16s-data/taxonomy_dual.qza",
                               metadata="../16s-data/16S_meta.txt")
@@ -26,9 +26,9 @@ m <- data.table::fread("../seq.f0.0.r0.0.nonhost.humann/all_bugs_list.tsv",
 k <- data.table::fread("../seq.f0.0.r0.0.nonhost.kraken/Combined-taxonomy.tsv",
                        data.table=F)
 
-metadata <- data.table::fread("../metadata.csv", data.table=F)
-rownames(metadata) <- metadata$Sample
-metadata$Sample <- NULL
+metadata <- data.table::fread("../16s-data/16S_meta.txt", data.table=F)
+rownames(metadata) <- metadata$Sample_ID
+metadata$Sample_ID <- NULL
 
 participant.metadata.DM <- data.table::fread("../High_Prev_Metadata_redcap_DM.csv", data.table=F)
 participant.metadata.LG <- data.table::fread("../High_Prev_Metadata_redcap_LG.csv", data.table=F)
@@ -49,31 +49,6 @@ metadata$participantID <- rownames(metadata) %>%
     sapply(FUN=function(x){paste0(str_split(x, "_")[[1]][1], 
                                   "0", 
                                   str_split(x, "_")[[1]][2])})
-
-
-participant.metadata$HIV <- participant.metadata$`What is the participant's HIV status?`
-
-participant.metadata$Gender <- participant.metadata$`What gender do you identify with?`
-participant.metadata$Orientation <- participant.metadata$`What is your sexual orientation?`
-participant.metadata$MSM <- participant.metadata$Gender=="Men" & (participant.metadata$Orientation=="Gay" | participant.metadata$Orientation=="Bisexual")
-
-# address missing data with follow-up from Mallory
-participant.metadata[participant.metadata$Sample=="DM001", "MSM"] <- TRUE
-participant.metadata[participant.metadata$PID=="DM002", "MSM"] <- TRUE
-participant.metadata[participant.metadata$PID=="DM007", "MSM"] <- TRUE
-participant.metadata[participant.metadata$PID=="DM093", "MSM"] <- FALSE
-
-participant.metadata$MSM.Label <- ifelse(participant.metadata$MSM,
-                             yes="MSM",
-                             no="MSW")
-
-metadata <- merge(metadata, metadata.16s[c("Sample_ID", "HIV_Status", "Cohort")],
-      by.x="row.names", by.y="Sample_ID", 
-      all.x=T, all.y=F)
-
-rownames(metadata) <- metadata$Row.names
-metadata$Row.names <- NULL
-
 ```
 
 ## 16S
@@ -231,7 +206,7 @@ make_microshades <- function(pseq, biggroup="Phylum", subgroup="Genus", facet_by
     mdf_GP <- color_objs_GP$mdf
     cdf_GP <- color_objs_GP$cdf
     
-    
+    mdf_GP <- mdf_GP[complete.cases(mdf_GP[, "Sample"]), ]
     
     # create a custom legend
     GP_legend <-custom_legend(mdf_GP, cdf_GP,
@@ -261,7 +236,8 @@ make_microshades <- function(pseq, biggroup="Phylum", subgroup="Genus", facet_by
               panel.grid.minor = element_blank() #remove minor gridlines
               ) + #transparent legend panel
         facet_grid(as.formula(paste0("~",facet_by)), 
-                   scales="free_x", space="free_x")
+                   scales="free_x", space="free_x",
+                   drop=TRUE)
     }
     
     multi <- plot_grid(plot_1, GP_legend,  rel_widths = c(1, .35))
