@@ -1,41 +1,41 @@
-Sample_ID	SEQ	HIV_Status	Cohort	SEQ_ID	MSM
-DM_11_1	SEQ010	Positive	Positive	Biop.DM011.1	Postive
-DM_11_2	SEQ010	Positive	Positive	Biop.DM011.2	Postive
-DM_15_1	SEQ010	Negative	Low-risk	Biop.DM015.1	MSW
-DM_15_2	SEQ010	Negative	Low-risk	Biop.DM015.2	MSW
-DM_18_1	SEQ010	Negative	Low-risk	Biop.DM018.1	MSW
-DM_18_2	SEQ010	Negative	Low-risk	Biop.DM018.2	MSW
-DM_19_1	SEQ010	Positive	Positive	Biop.DM019.1	Postive
-DM_19_2	SEQ010	Positive	Positive	Biop.DM019.2	Postive
-DM_21_1	SEQ010	Negative	Low-risk	Biop.DM021.1	MSW
-DM_21_2	SEQ010	Negative	Low-risk	Biop.DM021.2	MSW
-DM_23_1	SEQ010	Negative	Low-risk	Biop.DM023.1	MSW
-DM_23_2	SEQ010	Negative	Low-risk	Biop.DM023.2	MSW
-DM_34_1	SEQ015	Positive	Positive	Biop.Pos.DM034.1.T	Postive
-DM_34_2	SEQ015	Positive	Positive	Biop.Pos.DM034.2.T	Postive
-DM_35_1	SEQ015	Negative	High-risk	Biop.Neg.DM035.1	MSM
-DM_35_2	SEQ015	Negative	High-risk	Biop.Neg.DM035.2	MSM
-DM_36_1	SEQ015	Positive	Positive	Biop.Pos.DM036.1.T	Postive
-DM_36_2	SEQ015	Positive	Positive	Biop.Pos.DM036.2.T	Postive
-DM_38_1	SEQ015	Positive	Positive	Biop.Pos.DM038.1.T	Postive
-DM_38_2	SEQ015	Positive	Positive	Biop.Pos.DM038.2.T	Postive
-DM_63_1	SEQ015	Negative	High-risk	Biop.Neg.DM063.1	MSM
-DM_63_2	SEQ015	Negative	High-risk	Biop.Neg.DM063.2	MSM
-DM_55_1	SEQ023	Negative	High-risk	Biop.Neg.DM055.1.HR.23	MSM
-DM_55_2	SEQ023	Negative	High-risk	Biop.Neg.DM055.2.HR.23	MSM
-DM_64_1	SEQ023	Positive	Positive	Biop.Pos.DM064.1.T	Postive
-DM_69_1	SEQ023	Positive	Positive	Biop.Pos.DM069.1.T	Postive
-LG_05	SEQ023	Negative	MSW	Biop.Neg.LG005.LR	MSW
-LG_10	SEQ023	Negative	MSM	Biop.Neg.LG010.LR	MSM
-LG_16	SEQ023	Positive	Positive	Biop.Pos.LG016.T	Postive
-LG_17	SEQ023	Positive	Positive	Biop.Pos.LG017.T	Postive
-LG_23	SEQ023	Negative	MSM	Biop.Neg.LG023.HR	MSM
-LG_25	SEQ023	Negative	MSW	Biop.Neg.LG025.LR	WSM
-LG_26	SEQ023	Negative	MSW	Biop.Neg.LG026.LR	WSM
-DM_86_1	SEQ029	Negative	High-risk	Biop.Neg.DM086.1.HR	WSM
-DM_86_2	SEQ029	Negative	High-risk	Biop.Neg.DM086.2.HR	WSM
-LG_31	SEQ029	Negative	MSM	Biop.Neg.LG031.HR	MSM
-LG_37	SEQ029	Negative	MSM	Biop.Neg.LG037.HR	MSM
-LG_41	SEQ029	Negative	MSM	Biop.Neg.LG041.HR	MSM
-LG_43	SEQ029	Negative	MSW	Biop.Neg.LG043.LR	WSM
-LG_47	SEQ029	Negative	MSW	Biop.Neg.LG047.LR	MSW
+Sample_ID	SEQ	HIV_Status	Cohort	SEQ_ID	MSM	MSM2	HIV_Status2
+DM_11_1	SEQ010	Positive	Positive	Biop.DM011.1	Postive	MSM	HIV(+)
+DM_11_2	SEQ010	Positive	Positive	Biop.DM011.2	Postive	MSM	HIV(+)
+DM_15_1	SEQ010	Negative	Low-risk	Biop.DM015.1	MSW	MSW	HIV(-)
+DM_15_2	SEQ010	Negative	Low-risk	Biop.DM015.2	MSW	MSW	HIV(-)
+DM_18_1	SEQ010	Negative	Low-risk	Biop.DM018.1	MSW	MSW	HIV(-)
+DM_18_2	SEQ010	Negative	Low-risk	Biop.DM018.2	MSW	MSW	HIV(-)
+DM_19_1	SEQ010	Positive	Positive	Biop.DM019.1	Postive	MSM	HIV(+)
+DM_19_2	SEQ010	Positive	Positive	Biop.DM019.2	Postive	MSM	HIV(+)
+DM_21_1	SEQ010	Negative	Low-risk	Biop.DM021.1	MSW	MSW	HIV(-)
+DM_21_2	SEQ010	Negative	Low-risk	Biop.DM021.2	MSW	MSW	HIV(-)
+DM_23_1	SEQ010	Negative	Low-risk	Biop.DM023.1	MSW	MSW	HIV(-)
+DM_23_2	SEQ010	Negative	Low-risk	Biop.DM023.2	MSW	MSW	HIV(-)
+DM_34_1	SEQ015	Positive	Positive	Biop.Pos.DM034.1.T	Postive	MSM	HIV(+)
+DM_34_2	SEQ015	Positive	Positive	Biop.Pos.DM034.2.T	Postive	MSM	HIV(+)
+DM_35_1	SEQ015	Negative	High-risk	Biop.Neg.DM035.1	MSM	MSM	HIV(-)
+DM_35_2	SEQ015	Negative	High-risk	Biop.Neg.DM035.2	MSM	MSM	HIV(-)
+DM_36_1	SEQ015	Positive	Positive	Biop.Pos.DM036.1.T	Postive	MSM	HIV(+)
+DM_36_2	SEQ015	Positive	Positive	Biop.Pos.DM036.2.T	Postive	MSM	HIV(+)
+DM_38_1	SEQ015	Positive	Positive	Biop.Pos.DM038.1.T	Postive	WSM	HIV(+)
+DM_38_2	SEQ015	Positive	Positive	Biop.Pos.DM038.2.T	Postive	WSM	HIV(+)
+DM_63_1	SEQ015	Negative	High-risk	Biop.Neg.DM063.1	MSM	MSM	HIV(-)
+DM_63_2	SEQ015	Negative	High-risk	Biop.Neg.DM063.2	MSM	MSM	HIV(-)
+DM_55_1	SEQ023	Negative	High-risk	Biop.Neg.DM055.1.HR.23	MSM	MSM	HIV(-)
+DM_55_2	SEQ023	Negative	High-risk	Biop.Neg.DM055.2.HR.23	MSM	MSM	HIV(-)
+DM_64_1	SEQ023	Positive	Positive	Biop.Pos.DM064.1.T	Postive	MSM	HIV(+)
+DM_69_1	SEQ023	Positive	Positive	Biop.Pos.DM069.1.T	Postive	MSM	HIV(+)
+LG_05	SEQ023	Negative	MSW	Biop.Neg.LG005.LR	MSW	MSW	HIV(-)
+LG_10	SEQ023	Negative	MSM	Biop.Neg.LG010.LR	MSM	MSM	HIV(-)
+LG_16	SEQ023	Positive	Positive	Biop.Pos.LG016.T	Postive	MSM	HIV(+)
+LG_17	SEQ023	Positive	Positive	Biop.Pos.LG017.T	Postive	MSM	HIV(+)
+LG_23	SEQ023	Negative	MSM	Biop.Neg.LG023.HR	MSM	MSM	HIV(-)
+LG_25	SEQ023	Negative	MSW	Biop.Neg.LG025.LR	WSM	WSM	HIV(-)
+LG_26	SEQ023	Negative	MSW	Biop.Neg.LG026.LR	WSM	WSM	HIV(-)
+DM_86_1	SEQ029	Negative	High-risk	Biop.Neg.DM086.1.HR	WSM	WSM	HIV(-)
+DM_86_2	SEQ029	Negative	High-risk	Biop.Neg.DM086.2.HR	WSM	WSM	HIV(-)
+LG_31	SEQ029	Negative	MSM	Biop.Neg.LG031.HR	MSM	MSM	HIV(-)
+LG_37	SEQ029	Negative	MSM	Biop.Neg.LG037.HR	MSM	MSM	HIV(-)
+LG_41	SEQ029	Negative	MSM	Biop.Neg.LG041.HR	MSM	MSM	HIV(-)
+LG_43	SEQ029	Negative	MSW	Biop.Neg.LG043.LR	WSM	WSM	HIV(-)
+LG_47	SEQ029	Negative	MSW	Biop.Neg.LG047.LR	MSW	MSW	HIV(-)
